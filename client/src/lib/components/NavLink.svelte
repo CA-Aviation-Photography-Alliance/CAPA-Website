@@ -1,8 +1,8 @@
 <script>
-	let { label } = $props();
+	let { label, href } = $props();
 </script>
 
-<div class="link">{label}</div>
+<a class="link" {href}>{label}</a>
 
 <style>
 	.link {

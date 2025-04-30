@@ -6,3 +6,9 @@
 
 <Nav />
 {@render children()}
+
+<style>
+	:global(body) {
+		background: #3e4163;
+	}
+</style>
