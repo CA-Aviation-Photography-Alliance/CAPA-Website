@@ -7,7 +7,6 @@
 	let mapElement;
 
 	onMount(() => {
-		// Make sure Leaflet is available
 		if (typeof L !== 'undefined') {
 			const map = L.map(mapElement).setView([airport.lat, airport.lon], 13);
 
