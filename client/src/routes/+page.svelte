@@ -1,8 +1,8 @@
 <div class="main">
 	<div class="home">
 		<div class="title">California Aviation Photography Alliance</div>
-		<img class="homeImg" src="homescreen-dabyt.jpg" alt="Home screen image" />
-		<div class="infocard">Photo by @Barlius</div>
+		<!-- <img class="homeImg" src="homescreen-dabyt.jpg" alt="Home screen image" /> -->
+		<!-- <div class="infocard">Photo by @Barlius</div> -->
 	</div>
 </div>
 <div class="about"></div>
@@ -39,7 +39,9 @@
 		left: 50%;
 		transform: translate(-50%, -50%);
 		backdrop-filter: blur(10);
-		color: white;
+		color: var(--color-capa-white);
+		font-family: 'eurostile', sans-serif;
+		font-weight: bold;
 	}
 
 	.homeImg {

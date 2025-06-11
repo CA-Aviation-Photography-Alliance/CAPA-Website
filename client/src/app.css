@@ -1,1 +1,34 @@
 @import 'tailwindcss';
+
+@theme {
+	--color-capa-red: #bc3011;
+	--color-capa-orange: #df4614;
+	--color-capa-yelorange: #fb931f;
+	--color-capa-yellow: #fdb92c;
+	--color-capa-black: #00040a;
+	--color-capa-white: #f4faff;
+}
+@font-face {
+	font-family: 'eurostile';
+	src: url('/fonts/Eurostile.otf') format('opentype');
+	font-weight: normal;
+	font-style: normal;
+}
+@font-face {
+	font-family: 'eurostile';
+	src: url('/fonts/Eurostile_Bold.otf') format('opentype');
+	font-weight: bold;
+	font-style: normal;
+}
+@font-face {
+	font-family: 'eurostile';
+	src: url('/fonts/Eurostile_Italic.otf') format('opentype');
+	font-weight: normal;
+	font-style: italic;
+}
+@font-face {
+	font-family: 'eurostile';
+	src: url('/fonts/Eurostile_Bold_Oblique.otf') format('opentype');
+	font-weight: bold;
+	font-style: italic;
+}

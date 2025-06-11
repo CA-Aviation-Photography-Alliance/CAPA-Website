@@ -9,6 +9,6 @@
 
 <style>
 	:global(body) {
-		background: #3e4163;
+		background: var(--color-capa-black);
 	}
 </style>
