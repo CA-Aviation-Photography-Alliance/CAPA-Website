@@ -1,8 +1,8 @@
 <div class="main">
 	<div class="home">
 		<div class="title">California Aviation Photography Alliance</div>
-		<!-- <img class="homeImg" src="homescreen-dabyt.jpg" alt="Home screen image" /> -->
-		<!-- <div class="infocard">Photo by @Barlius</div> -->
+		<img class="homeImg" src="homescreen-dabyt.jpg" alt="Home screen image" />
+		<div class="infocard">Photo by @Barlius</div>
 	</div>
 </div>
 <div class="about"></div>
@@ -35,28 +35,29 @@
 		font-size: 5em;
 		z-index: 1;
 		position: absolute;
-		top: 50%;
+		top: 200px;
 		left: 50%;
 		transform: translate(-50%, -50%);
 		backdrop-filter: blur(10);
 		color: var(--color-capa-white);
 		font-family: 'eurostile', sans-serif;
 		font-weight: bold;
+		text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 	}
 
 	.homeImg {
 		width: 100%;
-		height: 100%;
+		height: 500px;
 		object-fit: cover;
 		position: absolute;
 		top: 0;
 		left: 0;
-		filter: sepia(100%) hue-rotate(160deg) blur(3px);
+		filter: sepia(100%) hue-rotate(320deg) blur(3px);
 		opacity: 30%;
 	}
 	.infocard {
 		position: absolute;
-		bottom: 10px;
+		top: 440px;
 		right: 10px;
 		color: white;
 		font-size: 1.2em;

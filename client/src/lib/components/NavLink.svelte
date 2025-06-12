@@ -12,7 +12,7 @@
 		cursor: pointer;
 		transition: border-bottom 0.2s ease-in-out;
 		text-align: center;
-		margin: 0 40px;
+		margin: 0 20px;
 		font-family: eurostile;
 		font-weight: bold;
 		text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);

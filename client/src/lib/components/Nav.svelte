@@ -18,7 +18,6 @@
 
 <style>
 	.logo {
-		position: absolute;
 		left: 0px;
 		cursor: pointer;
 		height: 150px;
@@ -26,7 +25,7 @@
 	.nav {
 		position: fixed;
 		z-index: 999;
-		height: 50px;
+		height: 70px;
 		width: 100vw;
 		background-image: linear-gradient(
 			180deg,
@@ -38,10 +37,10 @@
 			var(--color-capa-yellow) 75%,
 			var(--color-capa-yellow) 100%
 		);
-		background-size: 50px 50px;
+		background-size: 50px 70px;
 		display: flex;
 		flex-direction: row;
-		justify-content: center;
+		justify-content: space-around;
 		align-items: center;
 		filter: drop-shadow(0px 0px 10px rgba(0, 0, 0, 0.5));
 	}
