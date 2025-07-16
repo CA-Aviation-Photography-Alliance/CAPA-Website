@@ -1,4 +1,5 @@
 <div class="main">
+	<div class="spacer" style="height:70px; width: 100%;"></div>
 	<div class="home">
 		<div class="title">California Aviation Photography Alliance</div>
 		<img class="homeImg" src="homescreen-dabyt.jpg" alt="Home screen image" />
@@ -14,6 +15,7 @@
 		display: flex;
 		justify-content: center;
 		align-items: center;
+		flex-direction: column;
 	}
 	.about {
 		height: 100vh;
@@ -43,6 +45,18 @@
 		font-family: 'eurostile', sans-serif;
 		font-weight: bold;
 		text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+	}
+
+	/* @media (max-width: 1000px) {
+		.title {
+			font-size: 3em;
+		}
+	} */
+
+	@media (max-width: 700px) {
+		.title {
+			font-size: 3em;
+		}
 	}
 
 	.homeImg {

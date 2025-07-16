@@ -7,7 +7,7 @@
 <style>
 	.link {
 		color: white;
-		border-bottom: 0px solid transparent;
+		border-bottom: 4px solid transparent;
 		border-top: 2px solid transparent;
 		cursor: pointer;
 		transition: border-bottom 0.2s ease-in-out;

@@ -10,4 +10,10 @@ declare global {
 	}
 }
 
+// Auth0 environment variables
+declare module '$env/static/public' {
+	export const PUBLIC_AUTH0_DOMAIN: string;
+	export const PUBLIC_AUTH0_CLIENT_ID: string;
+}
+
 export {};

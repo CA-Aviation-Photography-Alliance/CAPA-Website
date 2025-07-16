@@ -1,10 +1,11 @@
-<script>
+<script lang="ts">
 	import { onMount } from 'svelte';
 	import airports from '$lib/data/airports-california.json';
-	let mapElement;
+	let mapElement: any;
 	let searchTerm = '';
-	let map;
-	let markers = [];
+	let map: any;
+	let markers: array = [];
+	let customIcon: any;
 
 	// Filter airports based on the search term
 	$: filteredAirports = Object.entries(airports).filter(([code, airport]) => {
@@ -32,12 +33,12 @@
 
 		airportEntries.forEach(([code, airport]) => {
 			if (airport.lat && airport.lon) {
-				const marker = L.marker([airport.lat, airport.lon]).addTo(map);
+				const marker = L.marker([airport.lat, airport.lon], { icon: customIcon }).addTo(map);
 				marker.bindPopup(`
 					<div class="popup-content">
 						<h3>${airport.name}</h3>
 						<p>${airport.city}, ${airport.state}</p>
-						<a href="/airports/${airport.icao}" class="popup-link">View details</a>
+						<a href="https://wiki.capacommunity.net/airports/${airport.icao}" class="popup-link" target="_blank" rel="noopener noreferrer">View details</a>
 					</div>
 				`);
 				markers.push(marker);
@@ -49,6 +50,14 @@
 		if (typeof L !== 'undefined') {
 			map = L.map(mapElement, {}).setView([37.7749, -122.4194], 7); // Centered on California
 
+			// Create custom icon
+			customIcon = L.icon({
+				iconUrl: '/pinRed.png', // Place your custom pin image in the static folder
+				iconSize: [25, 33], // Size of the icon
+				iconAnchor: [12.5, 33], // Point of the icon which will correspond to marker's location
+				popupAnchor: [0, -32] // Point from which the popup should open relative to the iconAnchor
+			});
+
 			L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
 				maxZoom: 19,
 				attribution:
@@ -58,7 +67,7 @@
 			// Initialize markers
 			filteredAirports.forEach(([code, airport]) => {
 				if (airport.lat && airport.lon) {
-					const marker = L.marker([airport.lat, airport.lon]).addTo(map);
+					const marker = L.marker([airport.lat, airport.lon], { icon: customIcon }).addTo(map);
 					marker.bindPopup(`
 						<div class="popup-content">
 							<h3>${airport.name}</h3>
@@ -90,7 +99,7 @@
 						class="search-input"
 					/>
 					{#if searchTerm}
-						<button class="clear-button" on:click={() => (searchTerm = '')}>×</button>
+						<button class="clear-button" onclick={() => (searchTerm = '')}>×</button>
 					{/if}
 				</div>
 			</div>
@@ -133,6 +142,7 @@
 		padding: 0 2rem 2rem;
 		max-width: 1200px;
 		margin: 0 auto;
+		margin-top: 30px;
 	}
 
 	.map-container {
@@ -190,7 +200,7 @@
 
 	.search-input:focus {
 		outline: none;
-		border-color: #3e4163;
+		border-color: #bc3011;
 	}
 
 	.clear-button {
@@ -237,7 +247,7 @@
 		border-radius: 6px;
 		text-decoration: none;
 		color: #333;
-		border-left: 6px solid #3e4163;
+		border-left: 6px solid #bc3011;
 		transition: all 0.2s ease;
 	}
 

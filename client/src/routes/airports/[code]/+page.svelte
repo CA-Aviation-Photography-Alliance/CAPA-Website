@@ -1,7 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 
-	export let data;
+	let { data } = $props();
 	const { airport } = data;
 
 	let mapElement;
