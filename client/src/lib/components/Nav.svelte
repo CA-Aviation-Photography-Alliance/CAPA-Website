@@ -60,7 +60,12 @@
 			rel="noopener noreferrer"
 		/>
 		<NavLink label="Guides" href="/guides" />
-		<NavLink label="Community" href="/community" />
+		<NavLink
+			label="Community"
+			href="https://forum.capacommunity.net"
+			target="_blank"
+			rel="noopener noreferrer"
+		/>
 		<NavLink label="Map" href="/map" />
 		<NavLink label="Donate" href="/donate" />
 		{#if $authStore.isAuthenticated}
@@ -88,7 +93,12 @@
 			rel="noopener noreferrer"
 		/>
 		<NavLink label="Guides" href="/guides" />
-		<NavLink label="Community" href="/community" />
+		<NavLink
+			label="Community"
+			href="https://forum.capacommunity.net"
+			target="_blank"
+			rel="noopener noreferrer"
+		/>
 		<NavLink label="Map" href="/map" />
 		<NavLink label="Donate" href="/donate" />
 		{#if $authStore.isAuthenticated}

@@ -145,6 +145,37 @@ export async function getAccessToken(): Promise<string | null> {
 		return await auth0Client.getTokenSilently();
 	} catch (error) {
 		console.error('Error getting access token:', error);
+
+		// Check if it's a refresh token error
+		if (error instanceof Error && error.message.includes('refresh token')) {
+			console.warn('Refresh token expired, attempting to re-authenticate...');
+
+			try {
+				// Try to get a fresh token with cache disabled
+				return await auth0Client.getTokenSilently({
+					cacheMode: 'off',
+					ignoreCache: true
+				});
+			} catch (retryError) {
+				console.error('Token retry failed, redirecting to login...');
+
+				// Update auth store to show user is no longer authenticated
+				authStore.set({
+					isLoading: false,
+					isAuthenticated: false,
+					user: null,
+					error: 'Session expired. Please log in again.'
+				});
+
+				// Redirect to login after a short delay
+				setTimeout(() => {
+					login();
+				}, 1000);
+
+				return null;
+			}
+		}
+
 		return null;
 	}
 }
