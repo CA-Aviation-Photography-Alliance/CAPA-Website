@@ -5,7 +5,6 @@
 	import CreateEventModal from '$lib/components/events/CreateEventModal.svelte';
 	import EditEventModal from '$lib/components/events/EditEventModal.svelte';
 	import EventCard from '$lib/components/events/EventCard.svelte';
-	import { generateCoordinateNearCity } from '$lib/utils/coordinates';
 
 	let mapElement: HTMLDivElement;
 	let searchTerm = '';
@@ -24,7 +23,19 @@
 	let showCreateModal = false;
 	let showEditModal = false;
 	let selectedEvent: any = null;
-	let createEventLatLng: { lat: number; lng: number } | null = null;
+
+	// --- Begin: Event creation form state managed in parent ---
+	let createEventFormData = {
+		startdate: '',
+		enddate: '',
+		type: '',
+		title: '',
+		description: ''
+	};
+	let createEventLat = null;
+	let createEventLng = null;
+	// --- End: Event creation form state managed in parent ---
+
 	let editEventLatLng: { lat: number; lng: number } | null = null;
 	let isLocationPickerMode = false;
 	let isEditingLocation = false;
@@ -128,7 +139,7 @@
 					<div class="popup-content">
 						<h3>${airport.name}</h3>
 						<p>${airport.city}, ${airport.state}</p>
-						<a href="https://wiki.capacommunity.net/airports/${airport.icao}" class="popup-link" target="_blank" rel="noopener noreferrer">View details</a>
+						<a href="https://wiki.capacommunity.net/airports/${airport.icao}" class="popup-link view-btn" target="_blank" rel="noopener noreferrer">View details</a>
 					</div>
 				`);
 				markers.push(marker);
@@ -143,17 +154,15 @@
 		clearEventMarkers();
 
 		eventList.forEach((event, index) => {
-			// Generate consistent coordinates for each event based on its ID
-			// This ensures events don't jump around on refresh
-			const seed = event._id.slice(-8); // Use last 8 chars of ID as seed
-			const seedNum = parseInt(seed, 16) / 0xffffffff; // Convert to 0-1 range
-
-			// Use seeded random to pick a coordinate near a major city
-			const cities = ['Los Angeles', 'San Francisco', 'San Diego', 'Sacramento', 'San Jose'];
-			const cityIndex = Math.floor(seedNum * cities.length);
-			const coords = generateCoordinateNearCity(cities[cityIndex], 30);
-			const lat = coords.lat;
-			const lng = coords.lng;
+			let lat, lng;
+			if (event.location && event.location.latitude && event.location.longitude) {
+				lat = event.location.latitude;
+				lng = event.location.longitude;
+			} else {
+				// fallback: use a default location or skip
+				lat = 34.0522; // Los Angeles as fallback
+				lng = -118.2437;
+			}
 
 			const marker = window.L.marker([lat, lng], {
 				icon: eventIcon
@@ -165,7 +174,10 @@
 				minute: '2-digit'
 			});
 
-			const creatorName = typeof event.creator === 'string' ? event.creator : event.creator.name;
+			const creatorUsername =
+				typeof event.creator === 'string'
+					? event.creator
+					: event.creator.nickname || event.creator.name || event.creator.email || 'Unknown';
 			const creatorUserId = typeof event.creator === 'string' ? null : event.creator.userId;
 
 			marker.bindPopup(`
@@ -174,7 +186,8 @@
 					<p class="event-type">${event.type}</p>
 					<p class="event-date">${startDate} at ${startTime}</p>
 					<p class="event-description">${event.description.substring(0, 100)}${event.description.length > 100 ? '...' : ''}</p>
-					<p class="event-creator">By ${creatorName}</p>
+					<p class="event-creator">By ${creatorUsername}</p>
+					<a href="/events/${event._id}" class="popup-link view-btn" target="_blank" rel="noopener noreferrer">View Details</a>
 					${
 						$authStore.user && creatorUserId && $authStore.user.sub === creatorUserId
 							? `<button onclick="editEvent('${event._id}')" class="popup-link edit-event-btn">Edit Event</button>`
@@ -198,7 +211,8 @@
 				isEditingLocation = false;
 				showEditModal = true;
 			} else {
-				createEventLatLng = { lat: e.latlng.lat, lng: e.latlng.lng };
+				createEventLat = e.latlng.lat;
+				createEventLng = e.latlng.lng;
 				showCreateModal = true;
 			}
 			isLocationPickerMode = false;
@@ -208,8 +222,17 @@
 	function handleEventCreated(event) {
 		events = [...events, event.detail];
 		fetchEvents(); // Refresh events list
-		createEventLatLng = null;
+		createEventFormData = {
+			startdate: '',
+			enddate: '',
+			type: '',
+			title: '',
+			description: ''
+		};
+		createEventLat = null;
+		createEventLng = null;
 		isLocationPickerMode = false;
+		showCreateModal = false;
 	}
 
 	function handleEventUpdated(event) {
@@ -228,7 +251,8 @@
 	}
 
 	function handlePickLocation() {
-		startLocationPicker();
+		showCreateModal = false;
+		isLocationPickerMode = true;
 	}
 
 	function handleEditPickLocation() {
@@ -377,31 +401,17 @@
 
 		// Create icons
 		customIcon = window.L.icon({
-			iconUrl:
-				'data:image/svg+xml;base64,' +
-				btoa(`
-				<svg xmlns="http://www.w3.org/2000/svg" width="25" height="33" viewBox="0 0 25 33">
-					<path d="M12.5 0C5.6 0 0 5.6 0 12.5c0 12.5 12.5 20.5 12.5 20.5s12.5-8 12.5-20.5C25 5.6 19.4 0 12.5 0z" fill="#bc3011"/>
-					<circle cx="12.5" cy="12.5" r="6" fill="white"/>
-				</svg>
-			`),
+			iconUrl: '/pinRed.png',
 			iconSize: [25, 33],
-			iconAnchor: [12.5, 33]
+			iconAnchor: [12.5, 33],
+			popupAnchor: [0, -33]
 		});
 
 		eventIcon = window.L.icon({
-			iconUrl:
-				'data:image/svg+xml;base64,' +
-				btoa(`
-				<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="#10b981" stroke="white" stroke-width="1.5">
-					<rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-					<line x1="16" y1="2" x2="16" y2="6"></line>
-					<line x1="8" y1="2" x2="8" y2="6"></line>
-					<line x1="3" y1="10" x2="21" y2="10"></line>
-				</svg>
-			`),
-			iconSize: [28, 28],
-			iconAnchor: [14, 28]
+			iconUrl: '/pinYellow.png',
+			iconSize: [25, 33],
+			iconAnchor: [12.5, 33],
+			popupAnchor: [0, -33]
 		});
 
 		// Add event handlers
@@ -602,12 +612,14 @@
 <!-- Modals -->
 <CreateEventModal
 	bind:isOpen={showCreateModal}
-	latitude={createEventLatLng?.lat}
-	longitude={createEventLatLng?.lng}
+	bind:formData={createEventFormData}
+	bind:latitude={createEventLat}
+	bind:longitude={createEventLng}
 	on:eventCreated={handleEventCreated}
 	on:pickLocation={handlePickLocation}
 	on:close={() => {
-		createEventLatLng = null;
+		createEventLat = null;
+		createEventLng = null;
 		isLocationPickerMode = false;
 	}}
 />
@@ -1020,6 +1032,13 @@
 	}
 
 	:global(.edit-event-btn) {
+		background: #bc3011 !important;
+		color: white !important;
+		border: none !important;
+		cursor: pointer;
+		font-size: 11px;
+	}
+	:global(.view-btn) {
 		background: #bc3011 !important;
 		color: white !important;
 		border: none !important;

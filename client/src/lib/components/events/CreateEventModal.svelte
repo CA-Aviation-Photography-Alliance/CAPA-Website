@@ -3,29 +3,12 @@
 	import { authStore, getAccessToken, login } from '$lib/auth/store';
 	import type { User } from '@auth0/auth0-spa-js';
 
-	interface CreateEventData {
-		startdate: string;
-		enddate: string;
-		type: string;
-		title: string;
-		description: string;
-		latitude?: number;
-		longitude?: number;
-	}
-
 	export let isOpen = false;
-	export let latitude: number | null = null;
-	export let longitude: number | null = null;
+	export let formData;
+	export let latitude;
+	export let longitude;
 
 	const dispatch = createEventDispatcher();
-
-	let formData: CreateEventData = {
-		startdate: '',
-		enddate: '',
-		type: '',
-		title: '',
-		description: ''
-	};
 
 	let isSubmitting = false;
 	let errors: string[] = [];
@@ -44,34 +27,11 @@
 		'Other'
 	];
 
-	// Reset form when modal opens/closes
-	$: if (isOpen) {
-		resetForm();
-	}
-
-	function resetForm() {
-		const now = new Date();
-		const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
-
-		formData = {
-			startdate: formatDateTimeLocal(now),
-			enddate: formatDateTimeLocal(oneHourLater),
-			type: '',
-			title: '',
-			description: ''
-		};
-		errors = [];
-		isSubmitting = false;
-		isRetrying = false;
-		showAuthError = false;
-	}
-
 	async function retryWithFreshAuth() {
 		isRetrying = true;
 		showAuthError = false;
 
 		try {
-			// Force a fresh login
 			await login();
 		} catch (error) {
 			console.error('Retry authentication failed:', error);
@@ -126,8 +86,13 @@
 		if (!validateForm()) return;
 
 		const user = $authStore.user as User;
-		if (!user) {
-			errors = ['You must be logged in to create events'];
+		console.log('Auth0 user:', user);
+
+		if (!user || !user.email || !(user.name || user.nickname)) {
+			errors = [
+				'Your Auth0 profile is missing a name or email. Please update your profile and try again.'
+			];
+			isSubmitting = false;
 			return;
 		}
 
@@ -148,13 +113,6 @@
 				type: formData.type,
 				title: formData.title,
 				description: formData.description,
-				creator: {
-					userId: user.sub || '',
-					email: user.email || '',
-					name: user.name || '',
-					nickname: user.nickname || '',
-					picture: user.picture || ''
-				},
 				...(latitude &&
 					longitude && {
 						location: {
@@ -164,7 +122,10 @@
 					})
 			};
 
-			const response = await fetch('http://localhost:3001/api/simple-events', {
+			console.log('ACCESS TOKEN:', token);
+
+			const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+			const response = await fetch(`${apiUrl}/api/simple-events`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
@@ -184,7 +145,6 @@
 		} catch (error) {
 			console.error('Error creating event:', error);
 
-			// Handle specific error types
 			if (error instanceof Error) {
 				if (error.message.includes('authentication') || error.message.includes('token')) {
 					showAuthError = true;
@@ -204,7 +164,6 @@
 
 	function closeModal() {
 		isOpen = false;
-		resetForm();
 		dispatch('close');
 	}
 
@@ -234,16 +193,8 @@
 		<div class="modal-content">
 			<div class="modal-header">
 				<h2 id="modal-title">Create New Event</h2>
-
 				<button class="close-button" onclick={closeModal} aria-label="Close modal">
-					<svg
-						width="24"
-						height="24"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-					>
+					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 						<path d="M18 6L6 18M6 6l12 12"></path>
 					</svg>
 				</button>
@@ -341,14 +292,7 @@
 									dispatch('pickLocation');
 								}}
 							>
-								<svg
-									width="16"
-									height="16"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2"
-								>
+								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 									<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
 									<circle cx="12" cy="10" r="3"></circle>
 								</svg>
@@ -371,14 +315,7 @@
 								dispatch('pickLocation');
 							}}
 						>
-							<svg
-								width="14"
-								height="14"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-							>
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 								<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
 								<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
 							</svg>

@@ -63,6 +63,16 @@ const simpleEventSchema = new mongoose.Schema(
         trim: true,
       },
     },
+    location: {
+      latitude: {
+        type: Number,
+        required: false,
+      },
+      longitude: {
+        type: Number,
+        required: false,
+      },
+    },
   },
   {
     timestamps: true, // Adds createdAt and updatedAt fields

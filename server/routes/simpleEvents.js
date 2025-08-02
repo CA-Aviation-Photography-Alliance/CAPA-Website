@@ -29,13 +29,17 @@ const validateEvent = [
     ),
 ];
 
-// Helper function to extract user info from Auth0 token
+// Helper function to extract user info from Auth0 token (using namespaced claims)
 const extractUserInfo = (user) => ({
-  userId: user.sub,
-  email: user.email,
-  name: user.name || user.nickname || user.email,
-  nickname: user.nickname,
-  picture: user.picture,
+  userId: user.sub || "",
+  email: user["https://capacommunity.net/email"] || "",
+  name:
+    user["https://capacommunity.net/name"] ||
+    user["https://capacommunity.net/nickname"] ||
+    user["https://capacommunity.net/email"] ||
+    "",
+  nickname: user["https://capacommunity.net/nickname"] || "",
+  picture: user["https://capacommunity.net/picture"] || "",
 });
 
 // Helper function to check if user owns an event
@@ -300,7 +304,13 @@ router.get("/:id", async (req, res) => {
 
 // POST /api/simple-events - Create a new event
 router.post("/", verifyToken, validateEvent, async (req, res) => {
+  console.log("POST /api/simple-events called");
   try {
+    // Remove any creator field sent by the client
+    if ("creator" in req.body) {
+      delete req.body.creator;
+    }
+
     // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -321,10 +331,29 @@ router.post("/", verifyToken, validateEvent, async (req, res) => {
       });
     }
 
-    // Create new event with Auth0 user info
+    // Log req.user for debugging
+    console.log("req.user:", req.user);
+    // Securely set creator from JWT
     const userInfo = extractUserInfo(req.user);
+    // Log userInfo for debugging missing fields
+    console.log("userInfo:", userInfo);
+    // Ensure required creator fields are present and non-empty
+    if (!userInfo.userId || !userInfo.email || !userInfo.name) {
+      return res.status(400).json({
+        success: false,
+        error:
+          "Authenticated user profile is missing required fields (userId, email, or name). Please update your Auth0 profile.",
+      });
+    }
+
     const event = new SimpleEvent({
       startdate,
+      enddate,
+      type,
+      title,
+      description,
+      creator: userInfo,
+      location: req.body.location, // Save location from request body if present
       enddate,
       type,
       title,

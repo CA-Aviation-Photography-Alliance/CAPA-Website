@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import jwksClient from "jwks-client";
+import jwksRsa from "jwks-rsa";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -14,14 +14,11 @@ function initializeJwksClient() {
     );
     return null;
   }
-
-  return jwksClient({
+  return jwksRsa({
     jwksUri: `https://${process.env.AUTH0_DOMAIN}/.well-known/jwks.json`,
-    requestHeaders: {}, // Optional
-    timeout: 30000, // Defaults to 30s
     cache: true,
-    cacheMaxEntries: 5, // Default value
-    cacheMaxAge: 600 * 1000, // 10 minutes in milliseconds (explicit calculation)
+    cacheMaxEntries: 5,
+    cacheMaxAge: 600000, // 10 minutes
   });
 }
 
@@ -117,19 +114,8 @@ export const verifyToken = (req, res, next) => {
       });
     }
 
-    // Add user information to request object
-    req.user = {
-      sub: decoded.sub, // Auth0 user ID
-      email: decoded.email,
-      nickname: decoded.nickname,
-      name: decoded.name,
-      picture: decoded.picture,
-      email_verified: decoded.email_verified,
-      aud: decoded.aud,
-      iss: decoded.iss,
-      iat: decoded.iat,
-      exp: decoded.exp,
-    };
+    // Add all JWT claims to request object (including namespaced claims)
+    req.user = decoded;
 
     next();
   });
@@ -162,19 +148,8 @@ export const optionalAuth = (req, res, next) => {
       return next();
     }
 
-    // Valid token, add user information
-    req.user = {
-      sub: decoded.sub,
-      email: decoded.email,
-      nickname: decoded.nickname,
-      name: decoded.name,
-      picture: decoded.picture,
-      email_verified: decoded.email_verified,
-      aud: decoded.aud,
-      iss: decoded.iss,
-      iat: decoded.iat,
-      exp: decoded.exp,
-    };
+    // Valid token, add all JWT claims to request object (including namespaced claims)
+    req.user = decoded;
 
     next();
   });

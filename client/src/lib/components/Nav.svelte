@@ -37,7 +37,7 @@
 		onclick={() => (window.location.href = '/')}
 		aria-label="Go to home page"
 	>
-		<img class="logo" src="capa-logo.png" alt="CAPA Logo" />
+		<img class="logo" src="/capa-logo.png" alt="CAPA Logo" />
 	</button>
 	<!-- Hamburger icon for mobile -->
 	<button
@@ -133,6 +133,7 @@
 	}
 	.nav {
 		position: fixed;
+		top: 0px;
 		z-index: 1002;
 		height: 70px;
 		width: 100vw;

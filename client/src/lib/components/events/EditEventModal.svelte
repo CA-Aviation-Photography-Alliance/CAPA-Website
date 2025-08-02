@@ -3,40 +3,14 @@
 	import { authStore, getAccessToken, login } from '$lib/auth/store';
 	import type { User } from '@auth0/auth0-spa-js';
 
-	interface Event {
-		_id: string;
-		startdate: string;
-		enddate: string;
-		type: string;
-		title: string;
-		description: string;
-		creator: {
-			userId: string;
-			email: string;
-			name: string;
-			nickname?: string;
-			picture?: string;
-		};
-		createdAt: string;
-		updatedAt: string;
-	}
-
-	interface EditEventData {
-		startdate: string;
-		enddate: string;
-		type: string;
-		title: string;
-		description: string;
-	}
-
 	export let isOpen = false;
-	export let event: Event | null = null;
-	export let latitude: number | null = null;
-	export let longitude: number | null = null;
+	export let eventData = null;
+	export let latitude = null;
+	export let longitude = null;
 
 	const dispatch = createEventDispatcher();
 
-	let formData: EditEventData = {
+	let formData = {
 		startdate: '',
 		enddate: '',
 		type: '',
@@ -45,13 +19,10 @@
 	};
 
 	let isSubmitting = false;
-	let isDeleting = false;
 	let errors: string[] = [];
-	let showDeleteConfirm = false;
 	let isRetrying = false;
 	let showAuthError = false;
 
-	// Event types
 	const eventTypes = [
 		'Flight Training',
 		'Group Flight',
@@ -63,51 +34,14 @@
 		'Other'
 	];
 
-	// Reset form when modal opens/closes or event changes
-	$: if (isOpen && event) {
-		resetForm();
-	}
-
-	function resetForm() {
-		if (!event) return;
-
+	$: if (eventData && isOpen) {
 		formData = {
-			startdate: formatDateTimeLocal(new Date(event.startdate)),
-			enddate: formatDateTimeLocal(new Date(event.enddate)),
-			type: event.type,
-			title: event.title,
-			description: event.description
+			startdate: eventData.startdate ? eventData.startdate.slice(0, 16) : '',
+			enddate: eventData.enddate ? eventData.enddate.slice(0, 16) : '',
+			type: eventData.type || '',
+			title: eventData.title || '',
+			description: eventData.description || ''
 		};
-		errors = [];
-		isSubmitting = false;
-		isDeleting = false;
-		showDeleteConfirm = false;
-		isRetrying = false;
-		showAuthError = false;
-	}
-
-	async function retryWithFreshAuth() {
-		isRetrying = true;
-		showAuthError = false;
-
-		try {
-			// Force a fresh login
-			await login();
-		} catch (error) {
-			console.error('Retry authentication failed:', error);
-			errors = ['Unable to refresh authentication. Please try again.'];
-		} finally {
-			isRetrying = false;
-		}
-	}
-
-	function formatDateTimeLocal(date: Date): string {
-		const year = date.getFullYear();
-		const month = String(date.getMonth() + 1).padStart(2, '0');
-		const day = String(date.getDate()).padStart(2, '0');
-		const hours = String(date.getHours()).padStart(2, '0');
-		const minutes = String(date.getMinutes()).padStart(2, '0');
-		return `${year}-${month}-${day}T${hours}:${minutes}`;
 	}
 
 	function validateForm(): boolean {
@@ -116,48 +50,32 @@
 		if (!formData.title.trim()) {
 			errors.push('Title is required');
 		}
-
 		if (!formData.type) {
 			errors.push('Event type is required');
 		}
-
 		if (!formData.description.trim()) {
 			errors.push('Description is required');
 		}
-
 		if (!formData.startdate) {
 			errors.push('Start date is required');
 		}
-
 		if (!formData.enddate) {
 			errors.push('End date is required');
 		}
-
 		if (formData.startdate && formData.enddate) {
 			if (new Date(formData.startdate) >= new Date(formData.enddate)) {
 				errors.push('End date must be after start date');
 			}
 		}
-
 		return errors.length === 0;
 	}
 
-	function canEdit(): boolean {
-		const user = $authStore.user as User;
-		return !!(user && event && user.sub === event.creator.userId);
-	}
-
 	async function handleSubmit() {
-		if (!validateForm() || !event) return;
+		if (!validateForm()) return;
 
 		const user = $authStore.user as User;
 		if (!user) {
 			errors = ['You must be logged in to edit events'];
-			return;
-		}
-
-		if (!canEdit()) {
-			errors = ['You can only edit your own events'];
 			return;
 		}
 
@@ -172,22 +90,29 @@
 				return;
 			}
 
-			const eventData = {
+			const updatedEvent = {
 				startdate: new Date(formData.startdate).toISOString(),
 				enddate: new Date(formData.enddate).toISOString(),
 				type: formData.type,
 				title: formData.title,
 				description: formData.description,
-				creator: event.creator
+				...(latitude &&
+					longitude && {
+						location: {
+							latitude,
+							longitude
+						}
+					})
 			};
 
-			const response = await fetch(`http://localhost:3001/api/simple-events/${event._id}`, {
+			const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+			const response = await fetch(`${apiUrl}/api/simple-events/${eventData._id}`, {
 				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json',
 					Authorization: `Bearer ${token}`
 				},
-				body: JSON.stringify(eventData)
+				body: JSON.stringify(updatedEvent)
 			});
 
 			const result = await response.json();
@@ -201,7 +126,6 @@
 		} catch (error) {
 			console.error('Error updating event:', error);
 
-			// Handle specific error types
 			if (error instanceof Error) {
 				if (error.message.includes('authentication') || error.message.includes('token')) {
 					showAuthError = true;
@@ -219,84 +143,14 @@
 		}
 	}
 
-	async function handleDelete() {
-		if (!event) return;
-
-		const user = $authStore.user as User;
-		if (!user) {
-			errors = ['You must be logged in to delete events'];
-			return;
-		}
-
-		if (!canEdit()) {
-			errors = ['You can only delete your own events'];
-			return;
-		}
-
-		isDeleting = true;
-		showAuthError = false;
-
-		try {
-			const token = await getAccessToken();
-			if (!token) {
-				showAuthError = true;
-				errors = ['Authentication session expired. Please log in again.'];
-				return;
-			}
-
-			const response = await fetch(
-				`http://localhost:3001/api/simple-events/${event._id}?creator=${encodeURIComponent(event.creator.userId)}`,
-				{
-					method: 'DELETE',
-					headers: {
-						Authorization: `Bearer ${token}`
-					}
-				}
-			);
-
-			const result = await response.json();
-
-			if (!response.ok) {
-				throw new Error(result.error || 'Failed to delete event');
-			}
-
-			dispatch('eventDeleted', event._id);
-			closeModal();
-		} catch (error) {
-			console.error('Error deleting event:', error);
-
-			// Handle specific error types
-			if (error instanceof Error) {
-				if (error.message.includes('authentication') || error.message.includes('token')) {
-					showAuthError = true;
-					errors = ['Authentication error. Please try logging in again.'];
-				} else if (error.message.includes('network') || error.message.includes('fetch')) {
-					errors = ['Network error. Please check your connection and try again.'];
-				} else {
-					errors = [error.message];
-				}
-			} else {
-				errors = ['Failed to delete event. Please try again.'];
-			}
-		} finally {
-			isDeleting = false;
-			showDeleteConfirm = false;
-		}
-	}
-
 	function closeModal() {
 		isOpen = false;
-		resetForm();
 		dispatch('close');
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Escape') {
-			if (showDeleteConfirm) {
-				showDeleteConfirm = false;
-			} else {
-				closeModal();
-			}
+			closeModal();
 		}
 	}
 
@@ -309,7 +163,7 @@
 
 <svelte:window on:keydown={handleKeydown} />
 
-{#if isOpen && event}
+{#if isOpen}
 	<div
 		class="modal-overlay"
 		onclick={handleOutsideClick}
@@ -319,12 +173,7 @@
 	>
 		<div class="modal-content">
 			<div class="modal-header">
-				<div>
-					<h2 id="modal-title">Edit Event</h2>
-					<p class="event-info">
-						Created by {event.creator.name} on {new Date(event.createdAt).toLocaleDateString()}
-					</p>
-				</div>
+				<h2 id="modal-title">Edit Event</h2>
 				<button class="close-button" onclick={closeModal} aria-label="Close modal">
 					<svg
 						width="24"
@@ -339,222 +188,149 @@
 				</button>
 			</div>
 
-			{#if !canEdit()}
-				<div class="no-permission">
-					<p>You can only edit your own events.</p>
-					<button class="btn-secondary" onclick={closeModal}>Close</button>
+			<form
+				onsubmit={(e) => {
+					e.preventDefault();
+					handleSubmit();
+				}}
+				class="event-form"
+			>
+				{#if errors.length > 0}
+					<div class="error-list" class:auth-error={showAuthError}>
+						{#each errors as error}
+							<div class="error-item">{error}</div>
+						{/each}
+					</div>
+				{/if}
+
+				<div class="form-group">
+					<label for="title">Event Title *</label>
+					<input
+						id="title"
+						type="text"
+						bind:value={formData.title}
+						placeholder="Enter event title"
+						maxlength="200"
+						required
+					/>
 				</div>
-			{:else}
-				<form
-					onsubmit={(e) => {
-						e.preventDefault();
-						handleSubmit();
-					}}
-					class="event-form"
-				>
-					{#if errors.length > 0}
-						<div class="error-list" class:auth-error={showAuthError}>
-							{#each errors as error}
-								<div class="error-item">{error}</div>
-							{/each}
-							{#if showAuthError}
-								<div class="auth-error-actions">
-									<button
-										type="button"
-										class="btn-retry"
-										onclick={retryWithFreshAuth}
-										disabled={isRetrying}
-									>
-										{#if isRetrying}
-											<span class="spinner-small"></span>
-											Refreshing...
-										{:else}
-											Try Again
-										{/if}
-									</button>
-								</div>
-							{/if}
-						</div>
-					{/if}
 
+				<div class="form-group">
+					<label for="type">Event Type *</label>
+					<select id="type" bind:value={formData.type} required>
+						<option value="">Select event type</option>
+						{#each eventTypes as type}
+							<option value={type}>{type}</option>
+						{/each}
+					</select>
+				</div>
+
+				<div class="form-row">
 					<div class="form-group">
-						<label for="edit-title">Event Title *</label>
-						<input
-							id="edit-title"
-							type="text"
-							bind:value={formData.title}
-							placeholder="Enter event title"
-							maxlength="200"
-							required
-						/>
+						<label for="startdate">Start Date & Time *</label>
+						<input id="startdate" type="datetime-local" bind:value={formData.startdate} required />
 					</div>
 
 					<div class="form-group">
-						<label for="edit-type">Event Type *</label>
-						<select id="edit-type" bind:value={formData.type} required>
-							<option value="">Select event type</option>
-							{#each eventTypes as type}
-								<option value={type}>{type}</option>
-							{/each}
-						</select>
+						<label for="enddate">End Date & Time *</label>
+						<input id="enddate" type="datetime-local" bind:value={formData.enddate} required />
 					</div>
+				</div>
 
-					<div class="form-row">
-						<div class="form-group">
-							<label for="edit-startdate">Start Date & Time *</label>
-							<input
-								id="edit-startdate"
-								type="datetime-local"
-								bind:value={formData.startdate}
-								required
-							/>
-						</div>
+				<div class="form-group">
+					<label for="description">Description *</label>
+					<textarea
+						id="description"
+						bind:value={formData.description}
+						placeholder="Describe your event..."
+						maxlength="2000"
+						rows="4"
+						required
+					></textarea>
+					<div class="char-count">{formData.description.length}/2000</div>
+				</div>
 
-						<div class="form-group">
-							<label for="edit-enddate">End Date & Time *</label>
-							<input
-								id="edit-enddate"
-								type="datetime-local"
-								bind:value={formData.enddate}
-								required
-							/>
-						</div>
-					</div>
-
-					<div class="form-group">
-						<label for="edit-description">Description *</label>
-						<textarea
-							id="edit-description"
-							bind:value={formData.description}
-							placeholder="Describe your event..."
-							maxlength="2000"
-							rows="4"
-							required
-						></textarea>
-						<div class="char-count">{formData.description.length}/2000</div>
-					</div>
-
-					<div class="location-section-main">
-						{#if !latitude && !longitude}
-							<div class="location-picker-section">
-								<h4>Event Location</h4>
-								<p>Add a location where this event will appear on the map:</p>
-								<button
-									type="button"
-									class="btn-location-picker"
-									onclick={() => {
-										closeModal();
-										dispatch('pickLocation');
-									}}
-								>
-									<svg
-										width="16"
-										height="16"
-										viewBox="0 0 24 24"
-										fill="none"
-										stroke="currentColor"
-										stroke-width="2"
-									>
-										<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-										<circle cx="12" cy="10" r="3"></circle>
-									</svg>
-									Pick Location on Map
-								</button>
-							</div>
-						{:else}
-							<div class="location-display">
-								<h4>Event Location</h4>
-								<p>Coordinates: {latitude?.toFixed(4)}, {longitude?.toFixed(4)}</p>
-								<p class="location-note">
-									This event will appear on the map at the selected location.
-								</p>
-								<button
-									type="button"
-									class="btn-edit-location"
-									onclick={() => {
-										closeModal();
-										dispatch('pickLocation');
-									}}
-								>
-									<svg
-										width="14"
-										height="14"
-										viewBox="0 0 24 24"
-										fill="none"
-										stroke="currentColor"
-										stroke-width="2"
-									>
-										<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-										<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-									</svg>
-									Change Location
-								</button>
-							</div>
-						{/if}
-					</div>
-
-					<div class="form-actions">
-						<div class="delete-section">
-							{#if showDeleteConfirm}
-								<div class="delete-confirm">
-									<p>Are you sure you want to delete this event? This action cannot be undone.</p>
-									<div class="delete-actions">
-										<button
-											type="button"
-											class="btn-secondary"
-											onclick={() => (showDeleteConfirm = false)}
-											disabled={isDeleting}
-										>
-											Cancel
-										</button>
-										<button
-											type="button"
-											class="btn-danger"
-											onclick={handleDelete}
-											disabled={isDeleting}
-										>
-											{#if isDeleting}
-												<span class="spinner"></span>
-												Deleting...
-											{:else}
-												Delete Event
-											{/if}
-										</button>
-									</div>
-								</div>
-							{:else}
-								<button
-									type="button"
-									class="btn-danger"
-									onclick={() => (showDeleteConfirm = true)}
-									disabled={isSubmitting}
-								>
-									Delete Event
-								</button>
-							{/if}
-						</div>
-
-						<div class="main-actions">
+				<div class="location-section-main">
+					{#if !latitude || !longitude}
+						<div class="location-picker-section">
+							<h4>Event Location</h4>
+							<p>Choose where this event will appear on the map:</p>
 							<button
 								type="button"
-								class="btn-secondary"
-								onclick={closeModal}
-								disabled={isSubmitting || isDeleting}
+								class="btn-location-picker"
+								onclick={() => {
+									closeModal();
+									dispatch('pickLocation');
+								}}
 							>
-								Cancel
-							</button>
-							<button type="submit" class="btn-primary" disabled={isSubmitting || isDeleting}>
-								{#if isSubmitting}
-									<span class="spinner"></span>
-									Updating...
-								{:else}
-									Update Event
-								{/if}
+								<svg
+									width="16"
+									height="16"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+								>
+									<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+									<circle cx="12" cy="10" r="3"></circle>
+								</svg>
+								Pick Location on Map
 							</button>
 						</div>
+					{/if}
+				</div>
+
+				{#if latitude && longitude}
+					<div class="location-display">
+						<h4>Event Location</h4>
+						<p>Coordinates: {latitude.toFixed(4)}, {longitude.toFixed(4)}</p>
+						<p class="location-note">This event will appear on the map at the selected location.</p>
+						<button
+							type="button"
+							class="btn-edit-location"
+							onclick={() => {
+								closeModal();
+								dispatch('pickLocation');
+							}}
+						>
+							<svg
+								width="14"
+								height="14"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+							>
+								<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+								<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+							</svg>
+							Change Location
+						</button>
 					</div>
-				</form>
-			{/if}
+				{:else}
+					<div class="location-prompt">
+						<h4>Event Location</h4>
+						<p>
+							Close this dialog and click "Pick Location on Map" to select where this event will
+							appear on the map.
+						</p>
+					</div>
+				{/if}
+
+				<div class="form-actions">
+					<button type="button" class="btn-secondary" onclick={closeModal} disabled={isSubmitting}>
+						Cancel
+					</button>
+					<button type="submit" class="btn-primary" disabled={isSubmitting}>
+						{#if isSubmitting}
+							<span class="spinner"></span>
+							Saving...
+						{:else}
+							Save Changes
+						{/if}
+					</button>
+				</div>
+			</form>
 		</div>
 	</div>
 {/if}
@@ -602,12 +378,6 @@
 		font-weight: 600;
 	}
 
-	.event-info {
-		margin: 0.5rem 0 0;
-		font-size: 0.875rem;
-		color: #6b7280;
-	}
-
 	.close-button {
 		background: none;
 		border: none;
@@ -622,16 +392,6 @@
 	.close-button:hover {
 		color: #374151;
 		background: #f3f4f6;
-	}
-
-	.no-permission {
-		padding: 2rem 1.5rem;
-		text-align: center;
-	}
-
-	.no-permission p {
-		margin-bottom: 1rem;
-		color: #6b7280;
 	}
 
 	.event-form {
@@ -659,45 +419,6 @@
 	.auth-error {
 		background: #fef2f2;
 		border-color: #fca5a5;
-	}
-
-	.auth-error-actions {
-		margin-top: 1rem;
-		padding-top: 1rem;
-		border-top: 1px solid #fca5a5;
-	}
-
-	.btn-retry {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		padding: 0.5rem 1rem;
-		background: #dc2626;
-		color: white;
-		border: none;
-		border-radius: 4px;
-		font-weight: 500;
-		cursor: pointer;
-		transition: all 0.2s ease;
-		font-size: 0.8125rem;
-	}
-
-	.btn-retry:hover:not(:disabled) {
-		background: #b91c1c;
-	}
-
-	.btn-retry:disabled {
-		opacity: 0.7;
-		cursor: not-allowed;
-	}
-
-	.spinner-small {
-		width: 12px;
-		height: 12px;
-		border: 2px solid rgba(255, 255, 255, 0.3);
-		border-top: 2px solid white;
-		border-radius: 50%;
-		animation: spin 1s linear infinite;
 	}
 
 	.form-group {
@@ -752,44 +473,15 @@
 
 	.form-actions {
 		display: flex;
-		justify-content: space-between;
-		align-items: flex-end;
+		gap: 1rem;
+		justify-content: flex-end;
 		margin-top: 2rem;
 		padding-top: 1rem;
 		border-top: 1px solid #e5e7eb;
-		gap: 1rem;
-	}
-
-	.delete-section {
-		flex: 1;
-	}
-
-	.main-actions {
-		display: flex;
-		gap: 1rem;
-	}
-
-	.delete-confirm {
-		background: #fef2f2;
-		border: 1px solid #fecaca;
-		border-radius: 6px;
-		padding: 1rem;
-	}
-
-	.delete-confirm p {
-		margin: 0 0 1rem 0;
-		font-size: 0.875rem;
-		color: #dc2626;
-	}
-
-	.delete-actions {
-		display: flex;
-		gap: 0.5rem;
 	}
 
 	.btn-primary,
-	.btn-secondary,
-	.btn-danger {
+	.btn-secondary {
 		padding: 0.75rem 1.5rem;
 		border-radius: 6px;
 		font-weight: 500;
@@ -831,20 +523,6 @@
 		cursor: not-allowed;
 	}
 
-	.btn-danger {
-		background: #dc2626;
-		color: white;
-	}
-
-	.btn-danger:hover:not(:disabled) {
-		background: #b91c1c;
-	}
-
-	.btn-danger:disabled {
-		background: #9ca3af;
-		cursor: not-allowed;
-	}
-
 	.spinner {
 		width: 16px;
 		height: 16px;
@@ -861,6 +539,43 @@
 		100% {
 			transform: rotate(360deg);
 		}
+	}
+
+	.location-display,
+	.location-prompt {
+		margin-bottom: 1.5rem;
+		padding: 1rem;
+		border-radius: 6px;
+		border: 1px solid #e5e7eb;
+	}
+
+	.location-display {
+		background: #f0fdf4;
+		border-color: #bbf7d0;
+	}
+
+	.location-prompt {
+		background: #fffbeb;
+		border-color: #fed7aa;
+	}
+
+	.location-display h4,
+	.location-prompt h4 {
+		margin: 0 0 0.5rem 0;
+		font-size: 0.875rem;
+		font-weight: 600;
+		color: #374151;
+	}
+
+	.location-display p,
+	.location-prompt p {
+		margin: 0.25rem 0;
+		font-size: 0.8125rem;
+		color: #6b7280;
+	}
+
+	.location-note {
+		font-style: italic;
 	}
 
 	.location-section-main {
@@ -910,32 +625,6 @@
 		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 	}
 
-	.location-display {
-		margin-bottom: 1.5rem;
-		padding: 1rem;
-		border-radius: 6px;
-		border: 1px solid #e5e7eb;
-		background: #f0fdf4;
-		border-color: #bbf7d0;
-	}
-
-	.location-display h4 {
-		margin: 0 0 0.5rem 0;
-		font-size: 0.875rem;
-		font-weight: 600;
-		color: #374151;
-	}
-
-	.location-display p {
-		margin: 0.25rem 0;
-		font-size: 0.8125rem;
-		color: #6b7280;
-	}
-
-	.location-note {
-		font-style: italic;
-	}
-
 	.btn-edit-location {
 		display: flex;
 		align-items: center;
@@ -978,22 +667,12 @@
 
 		.form-actions {
 			flex-direction: column;
-			align-items: stretch;
-		}
-
-		.main-actions {
-			flex-direction: column;
 		}
 
 		.btn-primary,
-		.btn-secondary,
-		.btn-danger {
+		.btn-secondary {
 			width: 100%;
 			justify-content: center;
-		}
-
-		.delete-actions {
-			flex-direction: column;
 		}
 	}
 </style>

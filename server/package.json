@@ -29,7 +29,7 @@
     "express-oauth-server": "^2.0.0",
     "express-validator": "^7.0.1",
     "jsonwebtoken": "^9.0.2",
-    "jwks-client": "^2.0.5",
+    "jwks-rsa": "^3.2.0",
     "mongoose": "^8.0.0",
     "node-fetch": "^3.3.2"
   },
