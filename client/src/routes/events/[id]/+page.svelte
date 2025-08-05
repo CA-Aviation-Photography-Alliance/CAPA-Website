@@ -23,7 +23,7 @@
 			const res = await fetch(`${API_URL}/api/simple-events/${eventId}`);
 			if (!res.ok) throw new Error('Failed to fetch event');
 			event = await res.json();
-			console.log('Fetched event:', event);
+			// console.log('Fetched event:', event);
 		} catch (e) {
 			error = e.message;
 		} finally {

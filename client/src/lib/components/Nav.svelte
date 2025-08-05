@@ -67,7 +67,7 @@
 			rel="noopener noreferrer"
 		/>
 		<NavLink label="Map" href="/map" />
-		<NavLink label="Donate" href="/donate" />
+		<!-- <NavLink label="Donate" href="/donate" /> -->
 		{#if $authStore.isAuthenticated}
 			<NavLink label="Profile" href="/profile" />
 		{/if}

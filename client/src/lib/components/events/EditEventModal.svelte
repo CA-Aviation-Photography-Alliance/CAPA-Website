@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
+	import { createEventDispatcher, tick } from 'svelte';
 	import { authStore, getAccessToken, login } from '$lib/auth/store';
 	import type { User } from '@auth0/auth0-spa-js';
 
@@ -19,6 +19,8 @@
 	};
 
 	let isSubmitting = false;
+	let isDeleting = false;
+	let showDeleteConfirm = false;
 	let errors: string[] = [];
 	let isRetrying = false;
 	let showAuthError = false;
@@ -34,14 +36,21 @@
 		'Other'
 	];
 
+	async function populateForm() {
+		if (eventData) {
+			formData = {
+				startdate: eventData.startdate ? eventData.startdate.slice(0, 16) : '',
+				enddate: eventData.enddate ? eventData.enddate.slice(0, 16) : '',
+				type: eventData.type || '',
+				title: eventData.title || '',
+				description: eventData.description || ''
+			};
+			await tick(); // Ensure DOM updates with the new form data
+		}
+	}
+
 	$: if (eventData && isOpen) {
-		formData = {
-			startdate: eventData.startdate ? eventData.startdate.slice(0, 16) : '',
-			enddate: eventData.enddate ? eventData.enddate.slice(0, 16) : '',
-			type: eventData.type || '',
-			title: eventData.title || '',
-			description: eventData.description || ''
-		};
+		populateForm();
 	}
 
 	function validateForm(): boolean {
@@ -143,8 +152,77 @@
 		}
 	}
 
+	async function handleDelete() {
+		if (!eventData || !eventData._id) {
+			errors = ['No event selected for deletion'];
+			return;
+		}
+
+		const user = $authStore.user as User;
+		if (!user) {
+			errors = ['You must be logged in to delete events'];
+			return;
+		}
+
+		isDeleting = true;
+		showAuthError = false;
+
+		try {
+			const token = await getAccessToken();
+			if (!token) {
+				showAuthError = true;
+				errors = ['Authentication session expired. Please log in again.'];
+				return;
+			}
+
+			const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+			const response = await fetch(`${apiUrl}/api/simple-events/${eventData._id}`, {
+				method: 'DELETE',
+				headers: {
+					Authorization: `Bearer ${token}`
+				}
+			});
+
+			const result = await response.json();
+
+			if (!response.ok) {
+				throw new Error(result.error || 'Failed to delete event');
+			}
+
+			dispatch('eventDeleted', eventData._id);
+			closeModal();
+		} catch (error) {
+			console.error('Error deleting event:', error);
+
+			if (error instanceof Error) {
+				if (error.message.includes('authentication') || error.message.includes('token')) {
+					showAuthError = true;
+					errors = ['Authentication error. Please try logging in again.'];
+				} else if (error.message.includes('network') || error.message.includes('fetch')) {
+					errors = ['Network error. Please check your connection and try again.'];
+				} else {
+					errors = [error.message];
+				}
+			} else {
+				errors = ['Failed to delete event. Please try again.'];
+			}
+		} finally {
+			isDeleting = false;
+			showDeleteConfirm = false;
+		}
+	}
+
+	function confirmDelete() {
+		showDeleteConfirm = true;
+	}
+
+	function cancelDelete() {
+		showDeleteConfirm = false;
+	}
+
 	function closeModal() {
 		isOpen = false;
+		showDeleteConfirm = false;
 		dispatch('close');
 	}
 
@@ -317,19 +395,59 @@
 					</div>
 				{/if}
 
-				<div class="form-actions">
-					<button type="button" class="btn-secondary" onclick={closeModal} disabled={isSubmitting}>
-						Cancel
-					</button>
-					<button type="submit" class="btn-primary" disabled={isSubmitting}>
-						{#if isSubmitting}
-							<span class="spinner"></span>
-							Saving...
-						{:else}
-							Save Changes
-						{/if}
-					</button>
-				</div>
+				{#if showDeleteConfirm}
+					<div class="delete-confirmation">
+						<h4>Confirm Deletion</h4>
+						<p>Are you sure you want to delete this event? This action cannot be undone.</p>
+						<div class="delete-actions">
+							<button
+								type="button"
+								class="btn-secondary"
+								onclick={cancelDelete}
+								disabled={isDeleting}
+							>
+								Cancel
+							</button>
+							<button type="button" class="btn-danger" onclick={handleDelete} disabled={isDeleting}>
+								{#if isDeleting}
+									<span class="spinner"></span>
+									Deleting...
+								{:else}
+									Delete Event
+								{/if}
+							</button>
+						</div>
+					</div>
+				{:else}
+					<div class="form-actions">
+						<button
+							type="button"
+							class="btn-secondary"
+							onclick={closeModal}
+							disabled={isSubmitting}
+						>
+							Cancel
+						</button>
+						<div class="action-buttons">
+							<button
+								type="button"
+								class="btn-danger-outline"
+								onclick={confirmDelete}
+								disabled={isSubmitting}
+							>
+								Delete Event
+							</button>
+							<button type="submit" class="btn-primary" disabled={isSubmitting}>
+								{#if isSubmitting}
+									<span class="spinner"></span>
+									Saving...
+								{:else}
+									Save Changes
+								{/if}
+							</button>
+						</div>
+					</div>
+				{/if}
 			</form>
 		</div>
 	</div>
@@ -481,7 +599,9 @@
 	}
 
 	.btn-primary,
-	.btn-secondary {
+	.btn-secondary,
+	.btn-danger,
+	.btn-danger-outline {
 		padding: 0.75rem 1.5rem;
 		border-radius: 6px;
 		font-weight: 500;
@@ -521,6 +641,69 @@
 	.btn-secondary:disabled {
 		opacity: 0.5;
 		cursor: not-allowed;
+	}
+
+	.btn-danger {
+		background: #dc2626;
+		color: white;
+	}
+
+	.btn-danger:hover:not(:disabled) {
+		background: #b91c1c;
+	}
+
+	.btn-danger:disabled {
+		background: #9ca3af;
+		cursor: not-allowed;
+	}
+
+	.btn-danger-outline {
+		background: transparent;
+		color: #dc2626;
+		border: 1px solid #dc2626;
+	}
+
+	.btn-danger-outline:hover:not(:disabled) {
+		background: #dc2626;
+		color: white;
+	}
+
+	.btn-danger-outline:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.action-buttons {
+		display: flex;
+		gap: 1rem;
+		align-items: center;
+	}
+
+	.delete-confirmation {
+		background: #fef2f2;
+		border: 1px solid #fecaca;
+		border-radius: 6px;
+		padding: 1.5rem;
+		margin-top: 1rem;
+	}
+
+	.delete-confirmation h4 {
+		margin: 0 0 0.5rem 0;
+		color: #dc2626;
+		font-size: 1rem;
+		font-weight: 600;
+	}
+
+	.delete-confirmation p {
+		margin: 0 0 1rem 0;
+		color: #7f1d1d;
+		font-size: 0.875rem;
+	}
+
+	.delete-actions {
+		display: flex;
+		gap: 1rem;
+		justify-content: flex-end;
 	}
 
 	.spinner {
@@ -669,10 +852,21 @@
 			flex-direction: column;
 		}
 
+		.action-buttons {
+			flex-direction: column;
+			width: 100%;
+		}
+
 		.btn-primary,
-		.btn-secondary {
+		.btn-secondary,
+		.btn-danger,
+		.btn-danger-outline {
 			width: 100%;
 			justify-content: center;
+		}
+
+		.delete-actions {
+			flex-direction: column;
 		}
 	}
 </style>

@@ -1,8 +1,12 @@
 <script lang="ts">
+	import { createEventDispatcher } from 'svelte';
+
 	export let event;
 	export let compact = false;
 	export let showEditButton = false;
 	export let onEdit = () => {};
+
+	const dispatch = createEventDispatcher();
 
 	// Status calculation
 	let status = '';
@@ -16,6 +20,10 @@
 		status = 'Live';
 	} else {
 		status = 'Past';
+	}
+
+	function handleEdit() {
+		dispatch('edit', event);
 	}
 </script>
 
@@ -42,7 +50,7 @@
 		</div>
 	{/if}
 	{#if showEditButton}
-		<button class="edit-btn" on:click={onEdit}>Edit</button>
+		<button class="edit-btn" on:click={handleEdit}>Edit</button>
 	{/if}
 </div>
 

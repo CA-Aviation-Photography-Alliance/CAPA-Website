@@ -86,7 +86,7 @@
 		if (!validateForm()) return;
 
 		const user = $authStore.user as User;
-		console.log('Auth0 user:', user);
+		// console.log('Auth0 user:', user);
 
 		if (!user || !user.email || !(user.name || user.nickname)) {
 			errors = [
@@ -122,7 +122,7 @@
 					})
 			};
 
-			console.log('ACCESS TOKEN:', token);
+			// console.log('ACCESS TOKEN:', token);
 
 			const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 			const response = await fetch(`${apiUrl}/api/simple-events`, {
@@ -194,7 +194,14 @@
 			<div class="modal-header">
 				<h2 id="modal-title">Create New Event</h2>
 				<button class="close-button" onclick={closeModal} aria-label="Close modal">
-					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<svg
+						width="24"
+						height="24"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+					>
 						<path d="M18 6L6 18M6 6l12 12"></path>
 					</svg>
 				</button>
@@ -292,7 +299,14 @@
 									dispatch('pickLocation');
 								}}
 							>
-								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<svg
+									width="16"
+									height="16"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+								>
 									<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
 									<circle cx="12" cy="10" r="3"></circle>
 								</svg>
@@ -315,7 +329,14 @@
 								dispatch('pickLocation');
 							}}
 						>
-							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<svg
+								width="14"
+								height="14"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+							>
 								<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
 								<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
 							</svg>

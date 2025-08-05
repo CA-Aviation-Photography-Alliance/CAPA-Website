@@ -43,7 +43,7 @@
 
 	// Event filter
 	let showEvents = true;
-	let eventFilter = 'all'; // 'all', 'upcoming', 'live'
+	let eventFilter = 'active'; // 'active', 'upcoming', 'live'
 
 	// Filter airports based on the search term
 	$: filteredAirports = airports.filter((airport) => {
@@ -61,13 +61,22 @@
 
 	// Filter events based on selected filter
 	$: filteredEvents = events.filter((event) => {
-		if (eventFilter === 'upcoming') {
-			return new Date(event.startdate) > new Date();
-		} else if (eventFilter === 'live') {
-			const now = new Date();
-			return new Date(event.startdate) <= now && now <= new Date(event.enddate);
+		const now = new Date();
+		const startDate = new Date(event.startdate);
+		const endDate = new Date(event.enddate);
+
+		// Never show past events (events that have ended)
+		if (endDate < now) {
+			return false;
 		}
-		return true; // 'all'
+
+		if (eventFilter === 'upcoming') {
+			return startDate > now;
+		} else if (eventFilter === 'live') {
+			return startDate <= now && now <= endDate;
+		}
+		// 'active' shows both upcoming and live events (but no past events)
+		return true;
 	});
 
 	async function fetchAirports() {
@@ -103,7 +112,7 @@
 					event.creator &&
 					(typeof event.creator === 'string' || event.creator.name)
 			);
-			console.log(`Filtered ${rawEvents.length} events to ${events.length} valid events`);
+			// console.log(`Filtered ${rawEvents.length} events to ${events.length} valid events`);
 		} catch (error) {
 			console.error('Error fetching events:', error);
 		} finally {
@@ -247,6 +256,19 @@
 
 	function handleEditEvent(event) {
 		selectedEvent = event.detail;
+		// Initialize location data from the existing event if it exists
+		if (
+			event.detail.location &&
+			event.detail.location.latitude &&
+			event.detail.location.longitude
+		) {
+			editEventLatLng = {
+				lat: event.detail.location.latitude,
+				lng: event.detail.location.longitude
+			};
+		} else {
+			editEventLatLng = null;
+		}
 		showEditModal = true;
 	}
 
@@ -307,8 +329,8 @@
 		if (!browser) return;
 
 		loading = true;
-		console.log('Starting map initialization...');
-		console.log('Map element at start:', mapElement);
+		// console.log('Starting map initialization...');
+		// console.log('Map element at start:', mapElement);
 
 		try {
 			// Fetch data first
@@ -316,7 +338,7 @@
 
 			// Wait for DOM to be ready and element to be bound
 			await new Promise((resolve) => setTimeout(resolve, 500));
-			console.log('Map element after DOM wait:', mapElement);
+			// console.log('Map element after DOM wait:', mapElement);
 
 			// Wait for Leaflet to be available
 			await waitForLeaflet();
@@ -338,7 +360,7 @@
 
 		while (attempts < maxAttempts) {
 			if (typeof window !== 'undefined' && window.L && window.L.map) {
-				console.log('Leaflet is ready!');
+				// console.log('Leaflet is ready!');
 				return true;
 			}
 			await new Promise((resolve) => setTimeout(resolve, 100));
@@ -349,12 +371,12 @@
 	}
 
 	async function initializeMap() {
-		console.log('initializeMap called, mapElement:', mapElement);
+		// console.log('initializeMap called, mapElement:', mapElement);
 
 		// Wait for map element to be bound
 		let elementAttempts = 0;
 		while (!mapElement && elementAttempts < 30) {
-			console.log(`Waiting for map element, attempt ${elementAttempts + 1}`);
+			// console.log(`Waiting for map element, attempt ${elementAttempts + 1}`);
 			await new Promise((resolve) => setTimeout(resolve, 200));
 			elementAttempts++;
 		}
@@ -364,18 +386,18 @@
 			throw new Error('Map element not found after waiting');
 		}
 
-		console.log('Map element found:', mapElement);
-		console.log('Element dimensions:', {
-			width: mapElement.offsetWidth,
-			height: mapElement.offsetHeight,
-			clientWidth: mapElement.clientWidth,
-			clientHeight: mapElement.clientHeight
-		});
+		// console.log('Map element found:', mapElement);
+		// console.log('Element dimensions:', {
+		// 	width: mapElement.offsetWidth,
+		// 	height: mapElement.offsetHeight,
+		// 	clientWidth: mapElement.clientWidth,
+		// 	clientHeight: mapElement.clientHeight
+		// });
 
 		// Wait for element to have dimensions
 		let dimensionAttempts = 0;
 		while ((!mapElement.offsetWidth || !mapElement.offsetHeight) && dimensionAttempts < 20) {
-			console.log(`Waiting for dimensions, attempt ${dimensionAttempts + 1}`);
+			// console.log(`Waiting for dimensions, attempt ${dimensionAttempts + 1}`);
 			await new Promise((resolve) => setTimeout(resolve, 100));
 			dimensionAttempts++;
 		}
@@ -385,10 +407,10 @@
 			throw new Error('Map element has no dimensions');
 		}
 
-		console.log('Creating map with final dimensions:', {
-			width: mapElement.offsetWidth,
-			height: mapElement.offsetHeight
-		});
+		// console.log('Creating map with final dimensions:', {
+		// width: mapElement.offsetWidth,
+		// height: mapElement.offsetHeight
+		//});
 
 		// Create map
 		map = window.L.map(mapElement).setView([37.7749, -122.4194], 7);
@@ -422,7 +444,7 @@
 		if (showEvents) updateEventMarkers(filteredEvents);
 
 		mapInitialized = true;
-		console.log('Map created successfully');
+		// console.log('Map created successfully');
 	}
 </script>
 
@@ -462,7 +484,7 @@
 
 		<div class="map-container">
 			<div class="map-controls">
-				<div class="view-toggles">
+				<!-- <div class="view-toggles">
 					<label class="toggle-switch">
 						<input type="checkbox" bind:checked={showEvents} />
 						<span class="slider"></span>
@@ -470,12 +492,12 @@
 					</label>
 					{#if showEvents}
 						<select bind:value={eventFilter} class="filter-select">
-							<option value="all">All Events</option>
+							<option value="active">Active Events</option>
 							<option value="upcoming">Upcoming</option>
 							<option value="live">Live Now</option>
 						</select>
 					{/if}
-				</div>
+				</div> -->
 				{#if isLocationPickerMode}
 					<div class="location-picker-hint">
 						<svg
@@ -626,7 +648,7 @@
 
 <EditEventModal
 	bind:isOpen={showEditModal}
-	event={selectedEvent}
+	eventData={selectedEvent}
 	latitude={editEventLatLng?.lat}
 	longitude={editEventLatLng?.lng}
 	on:eventUpdated={handleEventUpdated}

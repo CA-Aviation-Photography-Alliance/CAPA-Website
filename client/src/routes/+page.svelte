@@ -1,14 +1,47 @@
 <div class="main">
-	<div class="spacer" style="height:70px; width: 100%;"></div>
+	<!-- <div class="spacer" style="height:70px; width: 100%;"></div> -->
 	<div class="home">
 		<div class="title">California Aviation Photography Alliance</div>
 		<img class="homeImg" src="homescreen-dabyt.jpg" alt="Home screen image" />
 		<div class="infocard">Photo by @Barlius</div>
 	</div>
+	<div class="buttons">
+		<a class="button" href="/map">Check out events!</a>
+		<a class="button" href="/guides">Read the Guides!</a>
+		<a class="button" href="https://forum.capacommunity.net">Post on the forum!</a>
+	</div>
 </div>
-<div class="about"></div>
 
 <style>
+	.buttons {
+		position: absolute;
+		top: 570px;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		flex-direction: column;
+		width: 100%;
+	}
+	.button {
+		width: 90%;
+		height: 50px;
+		background-color: var(--color-capa-red);
+		color: var(--color-capa-white);
+		border: none;
+		border-radius: 25px;
+		font-size: 1.2em;
+		cursor: pointer;
+		transition: background-color 0.3s ease;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		flex-direction: column;
+		font-family: 'eurostile';
+		margin: 10px;
+	}
+	.button:hover {
+		background-color: var(--color-capa-orange);
+	}
 	.main {
 		height: 100vh;
 		width: 100vw;
@@ -26,9 +59,10 @@
 	}
 
 	.home {
-		position: relative;
+		position: absolute;
+		top: 70px;
 		text-align: center;
-		height: 90%;
+		height: 500px;
 		width: 100%;
 	}
 

@@ -53,8 +53,8 @@
 			}
 
 			const updatedUser = await updateResponse.json();
-			console.log('API Response:', updatedUser);
-			console.log('Current user before update:', $authStore.user);
+			// console.log('API Response:', updatedUser);
+			// console.log('Current user before update:', $authStore.user);
 
 			// Wait for Auth0 servers to propagate the changes
 			await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -83,7 +83,7 @@
 				}
 			}
 
-			console.log('Final user after refresh:', $authStore.user);
+			// console.log('Final user after refresh:', $authStore.user);
 			alert('Profile updated successfully!');
 			onSave(updatedUser);
 			onClose();

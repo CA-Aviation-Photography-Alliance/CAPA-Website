@@ -31,18 +31,18 @@
 	}
 
 	function openEditModal() {
-		console.log('Opening edit modal...');
+		// console.log('Opening edit modal...');
 		showEditModal = true;
 	}
 
 	function closeEditModal() {
-		console.log('Closing edit modal...');
+		// console.log('Closing edit modal...');
 		showEditModal = false;
 	}
 
 	function handleProfileSaved(updatedUser: Record<string, unknown>) {
 		// The auth store is already updated in the EditProfile component
-		console.log('Profile updated:', updatedUser);
+		// console.log('Profile updated:', updatedUser);
 	}
 </script>
 
