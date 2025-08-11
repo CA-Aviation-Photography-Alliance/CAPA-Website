@@ -8,7 +8,6 @@
 
 	const dispatch = createEventDispatcher();
 
-	// Status calculation
 	let status = '';
 	const now = new Date();
 	const start = new Date(event.startdate);

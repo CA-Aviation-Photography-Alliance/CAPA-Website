@@ -25,16 +25,7 @@
 	let isRetrying = false;
 	let showAuthError = false;
 
-	const eventTypes = [
-		'Flight Training',
-		'Group Flight',
-		'ATC Session',
-		'Fly-in',
-		'Competition',
-		'Meeting',
-		'Social Event',
-		'Other'
-	];
+	const eventTypes = ['Planespotting', 'Airshow', 'Other'];
 
 	async function populateForm() {
 		if (eventData) {
@@ -456,7 +447,7 @@
 <style>
 	.modal-overlay {
 		position: fixed;
-		top: 0;
+		top: 35px;
 		left: 0;
 		width: 100%;
 		height: 100%;

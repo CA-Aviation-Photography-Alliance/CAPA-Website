@@ -2,8 +2,6 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { get } from 'svelte/store';
-	// import L from 'leaflet'; // Remove static import, use dynamic import in showMap
-
 	const API_URL = import.meta.env.VITE_API_URL;
 
 	let eventId: string = '';
@@ -78,7 +76,7 @@
 	{:else if event && event.data}
 		<h1>{event.data.title}</h1>
 		<p>by: {event.data.creator?.nickname || 'Unknown'}</p>
-		<p><strong>Type:</strong> {event.data.type}</p>
+		<p>{event.data.type}</p>
 		<p>
 			<strong>Start Date:</strong>
 			{event.data.startdate ? new Date(event.data.startdate).toLocaleString() : 'N/A'}
@@ -92,7 +90,7 @@
 		{:else}
 			<p><strong>Location:</strong> N/A</p>
 		{/if}
-		<p><strong>Description:</strong> {event.data.description || 'No description provided.'}</p>
+		<p>{event.data.description || 'No description provided.'}</p>
 	{:else}
 		<p>Event not found.</p>
 	{/if}
@@ -100,7 +98,9 @@
 
 <style>
 	.event-details-container {
-		max-width: 600px;
+		position: absolute;
+		top: 35px;
+		width: 100%;
 		margin: 2rem auto;
 		padding: 2rem;
 		background: #fff;
