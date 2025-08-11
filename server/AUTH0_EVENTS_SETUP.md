@@ -76,7 +76,7 @@ Your Events API now has two authentication approaches:
    MONGODB_URI=mongodb://localhost:27017/capa-events
    
    # Server Configuration
-   PORT=3001
+   PORT=3003
    NODE_ENV=development
    
    # Auth0 Configuration
@@ -107,10 +107,10 @@ npm start
 ### 4.2 Test Endpoints
 ```bash
 # Test public endpoint (should work)
-curl http://localhost:3001/api/auth-events
+curl http://localhost:3003/api/auth-events
 
 # Test protected endpoint (should fail)
-curl http://localhost:3001/api/auth-events/my
+curl http://localhost:3003/api/auth-events/my
 ```
 
 ### 4.3 Run Test Suite
@@ -217,7 +217,7 @@ const useEventsAPI = () => {
   const { getAccessTokenSilently, isAuthenticated } = useAuth0();
 
   const apiCall = async (endpoint, options = {}) => {
-    const url = `http://localhost:3001/api/auth-events${endpoint}`;
+    const url = `http://localhost:3003/api/auth-events${endpoint}`;
     
     let headers = {
       'Content-Type': 'application/json',

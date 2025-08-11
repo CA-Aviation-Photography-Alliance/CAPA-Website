@@ -68,7 +68,7 @@ docker run -d --name mongodb-local -p 27017:27017 mongo:latest
 Create `.env` file in the server directory:
 ```env
 MONGODB_URI=mongodb://localhost:27017/capa-events
-PORT=3001
+PORT=3003
 NODE_ENV=development
 ```
 
@@ -83,7 +83,7 @@ You should see:
    Host: localhost
    Port: 27017
    Database: capa-events
-Server running on port 3001
+Server running on port 3003
 ```
 
 ---
@@ -99,10 +99,10 @@ npm run test-api
 ### Test 2: Manual API Test
 ```bash
 # Check server health
-curl http://localhost:3001/health
+curl http://localhost:3003/health
 
 # Check simple events endpoint
-curl http://localhost:3001/api/simple-events
+curl http://localhost:3003/api/simple-events
 ```
 
 ### Test 3: Create Sample Data
@@ -116,7 +116,7 @@ npm run create-data
 
 ### Create an Event
 ```bash
-curl -X POST http://localhost:3001/api/simple-events \
+curl -X POST http://localhost:3003/api/simple-events \
   -H "Content-Type: application/json" \
   -d '{
     "startdate": "2024-07-25T10:00:00Z",
@@ -130,12 +130,12 @@ curl -X POST http://localhost:3001/api/simple-events \
 
 ### Get All Events
 ```bash
-curl http://localhost:3001/api/simple-events
+curl http://localhost:3003/api/simple-events
 ```
 
 ### Search Events
 ```bash
-curl "http://localhost:3001/api/simple-events?search=meeting&upcoming=true"
+curl "http://localhost:3003/api/simple-events?search=meeting&upcoming=true"
 ```
 
 ---
@@ -216,7 +216,7 @@ sudo journalctl -u mongod -f
 ### API Connection Issues
 ```bash
 # Check if server is running
-curl http://localhost:3001/health
+curl http://localhost:3003/health
 
 # Check MongoDB connection
 node -e "
@@ -227,8 +227,8 @@ import('./config/database.js').then(db =>
 
 ### Port Conflicts
 ```bash
-# Check what's using port 3001
-lsof -i :3001
+# Check what's using port 3003
+lsof -i :3003
 
 # Check what's using port 27017
 lsof -i :27017
@@ -250,14 +250,14 @@ lsof -i :27017
 Your local MongoDB + Events API is now running! Here's what you have:
 
 ✅ **Local MongoDB** running on port 27017  
-✅ **Events API** running on port 3001  
+✅ **Events API** running on port 3003  
 ✅ **Simple Events model** with 6 essential fields  
 ✅ **Full CRUD operations** with validation  
 ✅ **Search & filtering** capabilities  
 ✅ **Sample data** for testing  
 
 ### Next Steps:
-1. 🌐 **Frontend**: Connect your client app to `http://localhost:3001/api/simple-events`
+1. 🌐 **Frontend**: Connect your client app to `http://localhost:3003/api/simple-events`
 2. 📱 **Mobile**: Use the same API endpoints for mobile apps
 3. 🔒 **Production**: When ready, deploy with proper security and MongoDB Atlas
 4. ⚡ **Scale**: Add authentication, file uploads, notifications, etc.

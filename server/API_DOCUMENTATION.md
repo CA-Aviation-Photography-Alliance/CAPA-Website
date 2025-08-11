@@ -16,7 +16,7 @@ There are two event APIs available:
 ## Base URL
 
 ```
-http://localhost:3001/api/events
+http://localhost:3003/api/events
 ```
 
 ## Authentication
@@ -495,7 +495,7 @@ npm install
 
 ```env
 MONGODB_URI=mongodb+srv://username:password@cluster0.mongodb.net/capa-events?retryWrites=true&w=majority
-PORT=3001
+PORT=3003
 NODE_ENV=development
 ```
 
@@ -505,14 +505,14 @@ NODE_ENV=development
 npm start
 ```
 
-The server will run on `http://localhost:3001` and automatically connect to MongoDB Atlas.
+The server will run on `http://localhost:3003` and automatically connect to MongoDB Atlas.
 
 ## Testing with curl
 
 ### Create an Event
 
 ```bash
-curl -X POST http://localhost:3001/api/events \
+curl -X POST http://localhost:3003/api/events \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Test Event",
@@ -536,13 +536,13 @@ curl -X POST http://localhost:3001/api/events \
 ### Get All Events
 
 ```bash
-curl http://localhost:3001/api/events
+curl http://localhost:3003/api/events
 ```
 
 ### Get Event by ID
 
 ```bash
-curl http://localhost:3001/api/events/YOUR_EVENT_ID
+curl http://localhost:3003/api/events/YOUR_EVENT_ID
 ```
 
 ## Best Practices
@@ -589,7 +589,7 @@ The Simple Events API provides a streamlined interface for managing basic events
 ## Base URL
 
 ```
-http://localhost:3001/api/simple-events
+http://localhost:3003/api/simple-events
 ```
 
 ## Data Model
@@ -904,7 +904,7 @@ Any subset of fields:
 ### Create a Simple Event
 
 ```bash
-curl -X POST http://localhost:3001/api/simple-events \
+curl -X POST http://localhost:3003/api/simple-events \
   -H "Content-Type: application/json" \
   -d '{
     "startdate": "2024-06-01T10:00:00Z",
@@ -919,19 +919,19 @@ curl -X POST http://localhost:3001/api/simple-events \
 ### Get All Simple Events
 
 ```bash
-curl http://localhost:3001/api/simple-events
+curl http://localhost:3003/api/simple-events
 ```
 
 ### Get Simple Event by ID
 
 ```bash
-curl http://localhost:3001/api/simple-events/YOUR_EVENT_ID
+curl http://localhost:3003/api/simple-events/YOUR_EVENT_ID
 ```
 
 ### Update a Simple Event
 
 ```bash
-curl -X PATCH http://localhost:3001/api/simple-events/YOUR_EVENT_ID \
+curl -X PATCH http://localhost:3003/api/simple-events/YOUR_EVENT_ID \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Updated Workshop Title",
@@ -942,7 +942,7 @@ curl -X PATCH http://localhost:3001/api/simple-events/YOUR_EVENT_ID \
 ### Delete a Simple Event
 
 ```bash
-curl -X DELETE http://localhost:3001/api/simple-events/YOUR_EVENT_ID
+curl -X DELETE http://localhost:3003/api/simple-events/YOUR_EVENT_ID
 ```
 
 ## Validation

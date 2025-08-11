@@ -49,7 +49,7 @@ Using local MongoDB connection
    Host: localhost
    Port: 27017
    Database: capa-events
-Server running on port 3001
+Server running on port 3003
 ```
 
 ### Test the API
@@ -61,13 +61,13 @@ npm run test-api
 ### View Your Data
 ```bash
 # Get all events
-curl http://localhost:3001/api/simple-events
+curl http://localhost:3003/api/simple-events
 
 # Get upcoming events
-curl http://localhost:3001/api/simple-events/upcoming
+curl http://localhost:3003/api/simple-events/upcoming
 
 # Get statistics
-curl http://localhost:3001/api/simple-events/stats
+curl http://localhost:3003/api/simple-events/stats
 ```
 
 ## 📊 Sample Data Overview
@@ -108,7 +108,7 @@ npm run setup-db    # Full MongoDB setup (if needed)
 
 ### Create a New Event
 ```bash
-curl -X POST http://localhost:3001/api/simple-events \
+curl -X POST http://localhost:3003/api/simple-events \
   -H "Content-Type: application/json" \
   -d '{
     "startdate": "2025-01-15T14:00:00Z",
@@ -123,28 +123,28 @@ curl -X POST http://localhost:3001/api/simple-events \
 ### Search and Filter Events
 ```bash
 # Search for workshops
-curl "http://localhost:3001/api/simple-events?type=workshop"
+curl "http://localhost:3003/api/simple-events?type=workshop"
 
 # Search by creator
-curl "http://localhost:3001/api/simple-events?creator=Tech%20Academy"
+curl "http://localhost:3003/api/simple-events?creator=Tech%20Academy"
 
 # Search upcoming events
-curl "http://localhost:3001/api/simple-events?upcoming=true"
+curl "http://localhost:3003/api/simple-events?upcoming=true"
 
 # Full text search
-curl "http://localhost:3001/api/simple-events?search=development"
+curl "http://localhost:3003/api/simple-events?search=development"
 
 # Pagination
-curl "http://localhost:3001/api/simple-events?page=1&limit=5"
+curl "http://localhost:3003/api/simple-events?page=1&limit=5"
 ```
 
 ### Update an Event
 ```bash
 # Get an event ID first
-EVENT_ID=$(curl -s http://localhost:3001/api/simple-events | grep -o '"_id":"[^"]*' | head -1 | cut -d'"' -f4)
+EVENT_ID=$(curl -s http://localhost:3003/api/simple-events | grep -o '"_id":"[^"]*' | head -1 | cut -d'"' -f4)
 
 # Update the event (must include creator field for verification)
-curl -X PATCH http://localhost:3001/api/simple-events/$EVENT_ID \
+curl -X PATCH http://localhost:3003/api/simple-events/$EVENT_ID \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Updated Event Title",
@@ -156,7 +156,7 @@ curl -X PATCH http://localhost:3001/api/simple-events/$EVENT_ID \
 ### Delete an Event
 ```bash
 # Delete requires creator parameter in URL for verification
-curl -X DELETE "http://localhost:3001/api/simple-events/$EVENT_ID?creator=OriginalCreatorName"
+curl -X DELETE "http://localhost:3003/api/simple-events/$EVENT_ID?creator=OriginalCreatorName"
 ```
 
 ## 🔧 Configuration Details
@@ -164,7 +164,7 @@ curl -X DELETE "http://localhost:3001/api/simple-events/$EVENT_ID?creator=Origin
 ### Environment Variables (.env)
 ```env
 MONGODB_URI=mongodb://localhost:27017/capa-events
-PORT=3001
+PORT=3003
 NODE_ENV=development
 ```
 
@@ -246,8 +246,8 @@ npm run db:status
 # If MongoDB isn't running
 npm run db:start
 
-# Check if port 3001 is free
-lsof -i :3001
+# Check if port 3003 is free
+lsof -i :3003
 ```
 
 ### Database Connection Issues
@@ -268,7 +268,7 @@ npm run config-local
 npm start
 
 # Test basic connectivity
-curl http://localhost:3001/health
+curl http://localhost:3003/health
 
 # Run comprehensive tests (includes creator protection)
 npm run test-api
@@ -278,21 +278,21 @@ node test-creator-auth.js
 ### Creator Protection Errors
 ```bash
 # 403 Forbidden - Wrong creator
-curl -X PATCH http://localhost:3001/api/simple-events/EVENT_ID \
+curl -X PATCH http://localhost:3003/api/simple-events/EVENT_ID \
   -d '{"title": "New Title", "creator": "WrongPerson"}'
 
 # 400 Bad Request - Missing creator
-curl -X DELETE http://localhost:3001/api/simple-events/EVENT_ID
+curl -X DELETE http://localhost:3003/api/simple-events/EVENT_ID
 
 # 400 Bad Request - Missing creator in body
-curl -X PATCH http://localhost:3001/api/simple-events/EVENT_ID \
+curl -X PATCH http://localhost:3003/api/simple-events/EVENT_ID \
   -d '{"title": "New Title"}'
 ```
 
 ## 🚀 Next Steps
 
 ### Development
-1. **Connect your frontend** to `http://localhost:3001/api/simple-events`
+1. **Connect your frontend** to `http://localhost:3003/api/simple-events`
 2. **Add authentication** when ready for production
 3. **Customize validation** in `models/SimpleEvent.js`
 4. **Add new endpoints** in `routes/simpleEvents.js`

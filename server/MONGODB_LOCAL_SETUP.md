@@ -149,7 +149,7 @@ Create or update your `.env` file in the server directory:
 MONGODB_URI=mongodb://localhost:27017/capa-events
 
 # Server Configuration
-PORT=3001
+PORT=3003
 NODE_ENV=development
 
 # Optional: Add other environment variables
@@ -164,7 +164,7 @@ Also update `.env.example` with the same local configuration:
 MONGODB_URI=mongodb://localhost:27017/capa-events
 
 # Server Configuration
-PORT=3001
+PORT=3003
 NODE_ENV=development
 ```
 
@@ -435,7 +435,7 @@ For a visual interface to your database:
 4. 🚀 **Start your server**: `npm start`
 5. 🧪 **Run tests**: `node test-simple-events.js`
 6. 📊 **Create sample data**: `node create-test-data.js`
-7. 🌐 **Access API**: http://localhost:3001/api/simple-events
+7. 🌐 **Access API**: http://localhost:3003/api/simple-events
 
 ## Support
 
@@ -444,7 +444,7 @@ If you encounter issues:
 1. Check this troubleshooting guide
 2. Verify MongoDB is running: `mongosh --eval "db.runCommand({ ping: 1 })"`
 3. Check server logs for detailed error messages
-4. Ensure ports 3001 and 27017 are available
+4. Ensure ports 3003 and 27017 are available
 5. Review MongoDB official documentation: https://docs.mongodb.com/
 
 ## Useful Commands Cheat Sheet
@@ -465,7 +465,7 @@ mongosh capa-events --eval "db.simpleevents.find().count()" # Count documents
 npm start                                          # Start API server
 node test-simple-events.js                        # Test API
 node create-test-data.js                          # Create sample data
-curl http://localhost:3001/api/simple-events      # Test API endpoint
+curl http://localhost:3003/api/simple-events      # Test API endpoint
 ```
 
 Happy coding! 🚀

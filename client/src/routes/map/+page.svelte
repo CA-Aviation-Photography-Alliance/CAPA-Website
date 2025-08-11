@@ -81,7 +81,7 @@
 
 	async function fetchAirports() {
 		try {
-			const response = await fetch('http://localhost:3001/api/airports');
+			const response = await fetch('http://localhost:3003/api/airports');
 			if (!response.ok) {
 				throw new Error(`HTTP error! status: ${response.status}`);
 			}
@@ -95,7 +95,7 @@
 	async function fetchEvents() {
 		eventsLoading = true;
 		try {
-			const response = await fetch('http://localhost:3001/api/simple-events?limit=100');
+			const response = await fetch('http://localhost:3003/api/simple-events?limit=100');
 			if (!response.ok) {
 				throw new Error(`HTTP error! status: ${response.status}`);
 			}

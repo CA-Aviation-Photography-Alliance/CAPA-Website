@@ -34,7 +34,7 @@ function configureLocalDB() {
 MONGODB_URI=mongodb://localhost:27017/capa-events
 
 # Server Configuration
-PORT=3001
+PORT=3003
 NODE_ENV=development
 
 # Optional: Add other environment variables below

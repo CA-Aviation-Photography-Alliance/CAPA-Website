@@ -115,7 +115,7 @@
 
 			// console.log('ACCESS TOKEN:', token);
 
-			const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+			const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3003';
 			const response = await fetch(`${apiUrl}/api/simple-events`, {
 				method: 'POST',
 				headers: {

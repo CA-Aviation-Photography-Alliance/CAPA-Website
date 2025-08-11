@@ -1,6 +1,6 @@
 import fetch from "node-fetch";
 
-const BASE_URL = "http://localhost:3001/api/simple-events";
+const BASE_URL = "http://localhost:3003/api/simple-events";
 
 // Helper function to make API requests
 async function apiRequest(url, options = {}) {
@@ -240,7 +240,7 @@ async function testMultipleCreators() {
 // Check if server is running
 async function checkServer() {
   try {
-    const response = await fetch("http://localhost:3001/health");
+    const response = await fetch("http://localhost:3003/health");
     if (response.ok) {
       console.log("✅ Server is running\n");
       return true;

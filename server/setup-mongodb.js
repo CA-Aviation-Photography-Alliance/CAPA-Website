@@ -1,24 +1,24 @@
 #!/usr/bin/env node
 
-import { execSync, spawn } from 'child_process';
-import { readFileSync, writeFileSync, existsSync } from 'fs';
-import { platform } from 'os';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { execSync, spawn } from "child_process";
+import { readFileSync, writeFileSync, existsSync } from "fs";
+import { platform } from "os";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Colors for console output
 const colors = {
-  reset: '\x1b[0m',
-  bright: '\x1b[1m',
-  red: '\x1b[31m',
-  green: '\x1b[32m',
-  yellow: '\x1b[33m',
-  blue: '\x1b[34m',
-  magenta: '\x1b[35m',
-  cyan: '\x1b[36m'
+  reset: "\x1b[0m",
+  bright: "\x1b[1m",
+  red: "\x1b[31m",
+  green: "\x1b[32m",
+  yellow: "\x1b[33m",
+  blue: "\x1b[34m",
+  magenta: "\x1b[35m",
+  cyan: "\x1b[36m",
 };
 
 function colorLog(color, message) {
@@ -26,31 +26,31 @@ function colorLog(color, message) {
 }
 
 function header(message) {
-  console.log('\n' + '='.repeat(60));
-  colorLog('cyan', `  ${message}`);
-  console.log('='.repeat(60));
+  console.log("\n" + "=".repeat(60));
+  colorLog("cyan", `  ${message}`);
+  console.log("=".repeat(60));
 }
 
 function success(message) {
-  colorLog('green', `✅ ${message}`);
+  colorLog("green", `✅ ${message}`);
 }
 
 function error(message) {
-  colorLog('red', `❌ ${message}`);
+  colorLog("red", `❌ ${message}`);
 }
 
 function warning(message) {
-  colorLog('yellow', `⚠️  ${message}`);
+  colorLog("yellow", `⚠️  ${message}`);
 }
 
 function info(message) {
-  colorLog('blue', `ℹ️  ${message}`);
+  colorLog("blue", `ℹ️  ${message}`);
 }
 
 // Check if a command exists
 function commandExists(command) {
   try {
-    execSync(`which ${command}`, { stdio: 'ignore' });
+    execSync(`which ${command}`, { stdio: "ignore" });
     return true;
   } catch {
     return false;
@@ -61,7 +61,7 @@ function commandExists(command) {
 function executeCommand(command, description) {
   try {
     info(`Executing: ${description}`);
-    execSync(command, { stdio: 'inherit' });
+    execSync(command, { stdio: "inherit" });
     return true;
   } catch (error) {
     error(`Failed: ${description}`);
@@ -71,21 +71,21 @@ function executeCommand(command, description) {
 
 // Check MongoDB installation
 function checkMongoDBInstallation() {
-  header('Checking MongoDB Installation');
+  header("Checking MongoDB Installation");
 
-  const mongoExists = commandExists('mongod');
-  const mongoClientExists = commandExists('mongosh') || commandExists('mongo');
+  const mongoExists = commandExists("mongod");
+  const mongoClientExists = commandExists("mongosh") || commandExists("mongo");
 
   if (mongoExists) {
-    success('MongoDB server (mongod) is installed');
+    success("MongoDB server (mongod) is installed");
   } else {
-    warning('MongoDB server (mongod) is not installed');
+    warning("MongoDB server (mongod) is not installed");
   }
 
   if (mongoClientExists) {
-    success('MongoDB client is installed');
+    success("MongoDB client is installed");
   } else {
-    warning('MongoDB client is not installed');
+    warning("MongoDB client is not installed");
   }
 
   return mongoExists && mongoClientExists;
@@ -93,16 +93,16 @@ function checkMongoDBInstallation() {
 
 // Install MongoDB based on platform
 function installMongoDB() {
-  header('Installing MongoDB');
+  header("Installing MongoDB");
 
   const os = platform();
 
   switch (os) {
-    case 'darwin': // macOS
+    case "darwin": // macOS
       return installMongoDBMacOS();
-    case 'linux':
+    case "linux":
       return installMongoDBLinux();
-    case 'win32':
+    case "win32":
       return installMongoDBWindows();
     default:
       error(`Unsupported platform: ${os}`);
@@ -111,21 +111,26 @@ function installMongoDB() {
 }
 
 function installMongoDBMacOS() {
-  info('Detected macOS');
+  info("Detected macOS");
 
   // Check if Homebrew is installed
-  if (!commandExists('brew')) {
-    error('Homebrew is not installed. Please install it first:');
-    console.log('/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"');
+  if (!commandExists("brew")) {
+    error("Homebrew is not installed. Please install it first:");
+    console.log(
+      '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"',
+    );
     return false;
   }
 
-  success('Homebrew detected');
+  success("Homebrew detected");
 
   // Add MongoDB tap and install
   const commands = [
-    { cmd: 'brew tap mongodb/brew', desc: 'Adding MongoDB tap' },
-    { cmd: 'brew install mongodb-community', desc: 'Installing MongoDB Community Edition' }
+    { cmd: "brew tap mongodb/brew", desc: "Adding MongoDB tap" },
+    {
+      cmd: "brew install mongodb-community",
+      desc: "Installing MongoDB Community Edition",
+    },
   ];
 
   for (const { cmd, desc } of commands) {
@@ -134,41 +139,58 @@ function installMongoDBMacOS() {
     }
   }
 
-  info('Starting MongoDB service...');
-  executeCommand('brew services start mongodb/brew/mongodb-community', 'Starting MongoDB service');
+  info("Starting MongoDB service...");
+  executeCommand(
+    "brew services start mongodb/brew/mongodb-community",
+    "Starting MongoDB service",
+  );
 
   return true;
 }
 
 function installMongoDBLinux() {
-  info('Detected Linux');
+  info("Detected Linux");
 
   // Check which package manager is available
-  if (commandExists('apt')) {
+  if (commandExists("apt")) {
     return installMongoDBUbuntu();
-  } else if (commandExists('yum')) {
+  } else if (commandExists("yum")) {
     return installMongoDBCentOS();
-  } else if (commandExists('dnf')) {
+  } else if (commandExists("dnf")) {
     return installMongoDBFedora();
   } else {
-    error('No supported package manager found (apt, yum, dnf)');
-    info('Please install MongoDB manually: https://docs.mongodb.com/manual/installation/');
+    error("No supported package manager found (apt, yum, dnf)");
+    info(
+      "Please install MongoDB manually: https://docs.mongodb.com/manual/installation/",
+    );
     return false;
   }
 }
 
 function installMongoDBUbuntu() {
-  info('Installing MongoDB on Ubuntu/Debian');
+  info("Installing MongoDB on Ubuntu/Debian");
 
   const commands = [
-    { cmd: 'sudo apt-get update', desc: 'Updating package list' },
-    { cmd: 'sudo apt-get install -y wget curl gnupg2 software-properties-common apt-transport-https ca-certificates lsb-release', desc: 'Installing dependencies' },
-    { cmd: 'curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | sudo gpg --dearmor -o /usr/share/keyrings/mongodb-server-7.0.gpg', desc: 'Adding MongoDB GPG key' },
-    { cmd: 'echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu $(lsb_release -cs)/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list', desc: 'Adding MongoDB repository' },
-    { cmd: 'sudo apt-get update', desc: 'Updating package list with MongoDB repo' },
-    { cmd: 'sudo apt-get install -y mongodb-org', desc: 'Installing MongoDB' },
-    { cmd: 'sudo systemctl enable mongod', desc: 'Enabling MongoDB service' },
-    { cmd: 'sudo systemctl start mongod', desc: 'Starting MongoDB service' }
+    { cmd: "sudo apt-get update", desc: "Updating package list" },
+    {
+      cmd: "sudo apt-get install -y wget curl gnupg2 software-properties-common apt-transport-https ca-certificates lsb-release",
+      desc: "Installing dependencies",
+    },
+    {
+      cmd: "curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | sudo gpg --dearmor -o /usr/share/keyrings/mongodb-server-7.0.gpg",
+      desc: "Adding MongoDB GPG key",
+    },
+    {
+      cmd: 'echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu $(lsb_release -cs)/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list',
+      desc: "Adding MongoDB repository",
+    },
+    {
+      cmd: "sudo apt-get update",
+      desc: "Updating package list with MongoDB repo",
+    },
+    { cmd: "sudo apt-get install -y mongodb-org", desc: "Installing MongoDB" },
+    { cmd: "sudo systemctl enable mongod", desc: "Enabling MongoDB service" },
+    { cmd: "sudo systemctl start mongod", desc: "Starting MongoDB service" },
   ];
 
   for (const { cmd, desc } of commands) {
@@ -181,7 +203,7 @@ function installMongoDBUbuntu() {
 }
 
 function installMongoDBCentOS() {
-  info('Installing MongoDB on CentOS/RHEL');
+  info("Installing MongoDB on CentOS/RHEL");
 
   // Create MongoDB repo file
   const repoContent = `[mongodb-org-7.0]
@@ -192,17 +214,17 @@ enabled=1
 gpgkey=https://www.mongodb.org/static/pgp/server-7.0.asc`;
 
   try {
-    writeFileSync('/etc/yum.repos.d/mongodb-org-7.0.repo', repoContent);
-    success('Created MongoDB repository file');
+    writeFileSync("/etc/yum.repos.d/mongodb-org-7.0.repo", repoContent);
+    success("Created MongoDB repository file");
   } catch (error) {
-    error('Failed to create repository file. Run with sudo?');
+    error("Failed to create repository file. Run with sudo?");
     return false;
   }
 
   const commands = [
-    { cmd: 'sudo yum install -y mongodb-org', desc: 'Installing MongoDB' },
-    { cmd: 'sudo systemctl enable mongod', desc: 'Enabling MongoDB service' },
-    { cmd: 'sudo systemctl start mongod', desc: 'Starting MongoDB service' }
+    { cmd: "sudo yum install -y mongodb-org", desc: "Installing MongoDB" },
+    { cmd: "sudo systemctl enable mongod", desc: "Enabling MongoDB service" },
+    { cmd: "sudo systemctl start mongod", desc: "Starting MongoDB service" },
   ];
 
   for (const { cmd, desc } of commands) {
@@ -215,12 +237,15 @@ gpgkey=https://www.mongodb.org/static/pgp/server-7.0.asc`;
 }
 
 function installMongoDBFedora() {
-  info('Installing MongoDB on Fedora');
+  info("Installing MongoDB on Fedora");
 
   const commands = [
-    { cmd: 'sudo dnf install -y mongodb mongodb-server', desc: 'Installing MongoDB' },
-    { cmd: 'sudo systemctl enable mongod', desc: 'Enabling MongoDB service' },
-    { cmd: 'sudo systemctl start mongod', desc: 'Starting MongoDB service' }
+    {
+      cmd: "sudo dnf install -y mongodb mongodb-server",
+      desc: "Installing MongoDB",
+    },
+    { cmd: "sudo systemctl enable mongod", desc: "Enabling MongoDB service" },
+    { cmd: "sudo systemctl start mongod", desc: "Starting MongoDB service" },
   ];
 
   for (const { cmd, desc } of commands) {
@@ -233,35 +258,43 @@ function installMongoDBFedora() {
 }
 
 function installMongoDBWindows() {
-  error('Windows installation requires manual setup');
-  info('Please follow these steps:');
-  console.log('1. Download MongoDB Community Server from: https://www.mongodb.com/try/download/community');
-  console.log('2. Run the installer as Administrator');
+  error("Windows installation requires manual setup");
+  info("Please follow these steps:");
+  console.log(
+    "1. Download MongoDB Community Server from: https://www.mongodb.com/try/download/community",
+  );
+  console.log("2. Run the installer as Administrator");
   console.log('3. Choose "Complete" installation');
-  console.log('4. Install MongoDB as a Service');
-  console.log('5. Install MongoDB Compass (optional GUI)');
-  console.log('6. Start MongoDB service: net start MongoDB');
+  console.log("4. Install MongoDB as a Service");
+  console.log("5. Install MongoDB Compass (optional GUI)");
+  console.log("6. Start MongoDB service: net start MongoDB");
 
   return false;
 }
 
 // Check if MongoDB is running
 function checkMongoDBStatus() {
-  header('Checking MongoDB Status');
+  header("Checking MongoDB Status");
 
   try {
     // Try to connect to MongoDB
-    execSync('mongosh --eval "db.runCommand({ ping: 1 })" --quiet', { stdio: 'ignore', timeout: 5000 });
-    success('MongoDB is running and accessible');
+    execSync('mongosh --eval "db.runCommand({ ping: 1 })" --quiet', {
+      stdio: "ignore",
+      timeout: 5000,
+    });
+    success("MongoDB is running and accessible");
     return true;
   } catch {
     // Try with legacy mongo client
     try {
-      execSync('mongo --eval "db.runCommand({ ping: 1 })" --quiet', { stdio: 'ignore', timeout: 5000 });
-      success('MongoDB is running and accessible');
+      execSync('mongo --eval "db.runCommand({ ping: 1 })" --quiet', {
+        stdio: "ignore",
+        timeout: 5000,
+      });
+      success("MongoDB is running and accessible");
       return true;
     } catch {
-      warning('MongoDB is not running or not accessible');
+      warning("MongoDB is not running or not accessible");
       return false;
     }
   }
@@ -269,17 +302,23 @@ function checkMongoDBStatus() {
 
 // Start MongoDB service
 function startMongoDB() {
-  header('Starting MongoDB');
+  header("Starting MongoDB");
 
   const os = platform();
 
   switch (os) {
-    case 'darwin': // macOS
-      return executeCommand('brew services start mongodb/brew/mongodb-community', 'Starting MongoDB with Homebrew');
-    case 'linux':
-      return executeCommand('sudo systemctl start mongod', 'Starting MongoDB service');
-    case 'win32':
-      return executeCommand('net start MongoDB', 'Starting MongoDB service');
+    case "darwin": // macOS
+      return executeCommand(
+        "brew services start mongodb/brew/mongodb-community",
+        "Starting MongoDB with Homebrew",
+      );
+    case "linux":
+      return executeCommand(
+        "sudo systemctl start mongod",
+        "Starting MongoDB service",
+      );
+    case "win32":
+      return executeCommand("net start MongoDB", "Starting MongoDB service");
     default:
       error(`Don't know how to start MongoDB on ${os}`);
       return false;
@@ -288,16 +327,16 @@ function startMongoDB() {
 
 // Create .env file with MongoDB configuration
 function createEnvFile() {
-  header('Creating Environment Configuration');
+  header("Creating Environment Configuration");
 
-  const envPath = join(__dirname, '.env');
-  const envExamplePath = join(__dirname, '.env.example');
+  const envPath = join(__dirname, ".env");
+  const envExamplePath = join(__dirname, ".env.example");
 
   // Check if .env already exists
   if (existsSync(envPath)) {
-    const envContent = readFileSync(envPath, 'utf8');
-    if (envContent.includes('MONGODB_URI')) {
-      success('.env file already exists with MongoDB configuration');
+    const envContent = readFileSync(envPath, "utf8");
+    if (envContent.includes("MONGODB_URI")) {
+      success(".env file already exists with MongoDB configuration");
       return true;
     }
   }
@@ -307,7 +346,7 @@ function createEnvFile() {
 MONGODB_URI=mongodb://localhost:27017/capa-events
 
 # Server Configuration
-PORT=3001
+PORT=3003
 NODE_ENV=development
 
 # Add other environment variables below
@@ -315,12 +354,12 @@ NODE_ENV=development
 
   try {
     writeFileSync(envPath, envContent);
-    success('Created .env file with local MongoDB configuration');
+    success("Created .env file with local MongoDB configuration");
 
     // Also update .env.example if it exists
     if (existsSync(envExamplePath)) {
       writeFileSync(envExamplePath, envContent);
-      success('Updated .env.example file');
+      success("Updated .env.example file");
     }
 
     return true;
@@ -332,20 +371,20 @@ NODE_ENV=development
 
 // Test database connection
 async function testConnection() {
-  header('Testing Database Connection');
+  header("Testing Database Connection");
 
   try {
     // Import the database connection
-    const { default: connectDB } = await import('./config/database.js');
+    const { default: connectDB } = await import("./config/database.js");
 
-    info('Testing MongoDB connection...');
+    info("Testing MongoDB connection...");
     await connectDB();
-    success('Successfully connected to MongoDB!');
+    success("Successfully connected to MongoDB!");
 
     // Close the connection
-    const mongoose = await import('mongoose');
+    const mongoose = await import("mongoose");
     await mongoose.default.connection.close();
-    success('Connection test completed');
+    success("Connection test completed");
 
     return true;
   } catch (error) {
@@ -356,7 +395,7 @@ async function testConnection() {
 
 // Create initial data
 function createInitialData() {
-  header('Creating Initial Test Data');
+  header("Creating Initial Test Data");
 
   const testScript = `
 import mongoose from 'mongoose';
@@ -422,10 +461,10 @@ createTestData();
 `;
 
   try {
-    writeFileSync(join(__dirname, 'create-test-data.js'), testScript);
-    success('Created test data script');
+    writeFileSync(join(__dirname, "create-test-data.js"), testScript);
+    success("Created test data script");
 
-    info('You can run the test data script with: node create-test-data.js');
+    info("You can run the test data script with: node create-test-data.js");
     return true;
   } catch (error) {
     error(`Failed to create test data script: ${error.message}`);
@@ -436,21 +475,23 @@ createTestData();
 // Main setup function
 async function main() {
   console.clear();
-  header('🚀 MongoDB Local Setup Script for CAPA Events API');
+  header("🚀 MongoDB Local Setup Script for CAPA Events API");
 
-  info('This script will help you set up MongoDB locally for the CAPA Events API');
+  info(
+    "This script will help you set up MongoDB locally for the CAPA Events API",
+  );
 
   // Step 1: Check current installation
   const isInstalled = checkMongoDBInstallation();
 
   // Step 2: Install if needed
   if (!isInstalled) {
-    warning('MongoDB is not installed. Attempting to install...');
+    warning("MongoDB is not installed. Attempting to install...");
     const installSuccess = installMongoDB();
 
     if (!installSuccess) {
-      error('Failed to install MongoDB automatically');
-      info('Please install MongoDB manually and run this script again');
+      error("Failed to install MongoDB automatically");
+      info("Please install MongoDB manually and run this script again");
       process.exit(1);
     }
   }
@@ -460,18 +501,18 @@ async function main() {
 
   // Step 4: Start MongoDB if not running
   if (!isRunning) {
-    warning('MongoDB is not running. Attempting to start...');
+    warning("MongoDB is not running. Attempting to start...");
     const startSuccess = startMongoDB();
 
     if (!startSuccess) {
-      error('Failed to start MongoDB');
-      info('Please start MongoDB manually and run this script again');
+      error("Failed to start MongoDB");
+      info("Please start MongoDB manually and run this script again");
       process.exit(1);
     }
 
     // Wait a moment for MongoDB to fully start
-    info('Waiting for MongoDB to fully start...');
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    info("Waiting for MongoDB to fully start...");
+    await new Promise((resolve) => setTimeout(resolve, 3000));
   }
 
   // Step 5: Create environment configuration
@@ -481,7 +522,7 @@ async function main() {
   const connectionSuccess = await testConnection();
 
   if (!connectionSuccess) {
-    error('Database connection test failed');
+    error("Database connection test failed");
     process.exit(1);
   }
 
@@ -489,41 +530,49 @@ async function main() {
   createInitialData();
 
   // Final success message
-  header('🎉 Setup Complete!');
-  success('MongoDB is installed, running, and configured');
-  success('Environment file created');
-  success('Database connection verified');
+  header("🎉 Setup Complete!");
+  success("MongoDB is installed, running, and configured");
+  success("Environment file created");
+  success("Database connection verified");
 
-  console.log('\n📋 Next Steps:');
-  console.log('1. Start your server: npm start');
-  console.log('2. Test the API: node test-simple-events.js');
-  console.log('3. Create sample data: node create-test-data.js');
-  console.log('4. Access your API at: http://localhost:3001/api/simple-events');
+  console.log("\n📋 Next Steps:");
+  console.log("1. Start your server: npm start");
+  console.log("2. Test the API: node test-simple-events.js");
+  console.log("3. Create sample data: node create-test-data.js");
+  console.log("4. Access your API at: http://localhost:3003/api/simple-events");
 
-  console.log('\n🔧 Useful Commands:');
-  console.log('- Check MongoDB status: mongosh --eval "db.runCommand({ ping: 1 })"');
+  console.log("\n🔧 Useful Commands:");
+  console.log(
+    '- Check MongoDB status: mongosh --eval "db.runCommand({ ping: 1 })"',
+  );
   console.log('- View databases: mongosh --eval "show dbs"');
-  console.log('- Connect to your database: mongosh capa-events');
+  console.log("- Connect to your database: mongosh capa-events");
 
   const os = platform();
-  if (os === 'darwin') {
-    console.log('- Stop MongoDB: brew services stop mongodb/brew/mongodb-community');
-    console.log('- Restart MongoDB: brew services restart mongodb/brew/mongodb-community');
-  } else if (os === 'linux') {
-    console.log('- Stop MongoDB: sudo systemctl stop mongod');
-    console.log('- Restart MongoDB: sudo systemctl restart mongod');
-    console.log('- Check status: sudo systemctl status mongod');
+  if (os === "darwin") {
+    console.log(
+      "- Stop MongoDB: brew services stop mongodb/brew/mongodb-community",
+    );
+    console.log(
+      "- Restart MongoDB: brew services restart mongodb/brew/mongodb-community",
+    );
+  } else if (os === "linux") {
+    console.log("- Stop MongoDB: sudo systemctl stop mongod");
+    console.log("- Restart MongoDB: sudo systemctl restart mongod");
+    console.log("- Check status: sudo systemctl status mongod");
   }
 
-  console.log('\n💡 Tips:');
-  console.log('- MongoDB data is stored locally on your machine');
+  console.log("\n💡 Tips:");
+  console.log("- MongoDB data is stored locally on your machine");
   console.log('- Your database name is "capa-events"');
-  console.log('- Default connection: mongodb://localhost:27017/capa-events');
-  console.log('- For production, consider using MongoDB Atlas or a dedicated server');
+  console.log("- Default connection: mongodb://localhost:27017/capa-events");
+  console.log(
+    "- For production, consider using MongoDB Atlas or a dedicated server",
+  );
 }
 
 // Run the setup
-main().catch(error => {
+main().catch((error) => {
   error(`Setup failed: ${error.message}`);
   process.exit(1);
 });

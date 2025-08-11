@@ -32,7 +32,7 @@ npm install
 2. Set up your MongoDB connection in `.env`:
 ```env
 MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/database?retryWrites=true&w=majority
-PORT=3001
+PORT=3003
 ```
 
 3. Start the server:
@@ -40,7 +40,7 @@ PORT=3001
 npm start
 ```
 
-The API will be available at `http://localhost:3001/api/simple-events`
+The API will be available at `http://localhost:3003/api/simple-events`
 
 ## API Endpoints
 
@@ -64,7 +64,7 @@ The API will be available at `http://localhost:3001/api/simple-events`
 ### Create an Event
 
 ```bash
-curl -X POST http://localhost:3001/api/simple-events \
+curl -X POST http://localhost:3003/api/simple-events \
   -H "Content-Type: application/json" \
   -d '{
     "startdate": "2024-06-01T10:00:00Z",
@@ -79,26 +79,26 @@ curl -X POST http://localhost:3001/api/simple-events \
 ### Get All Events
 
 ```bash
-curl http://localhost:3001/api/simple-events
+curl http://localhost:3003/api/simple-events
 ```
 
 ### Filter Events
 
 ```bash
 # Get upcoming workshops
-curl "http://localhost:3001/api/simple-events?type=workshop&upcoming=true"
+curl "http://localhost:3003/api/simple-events?type=workshop&upcoming=true"
 
 # Search events
-curl "http://localhost:3001/api/simple-events?search=web development"
+curl "http://localhost:3003/api/simple-events?search=web development"
 
 # Get events by creator
-curl "http://localhost:3001/api/simple-events/by-creator/Tech%20Academy"
+curl "http://localhost:3003/api/simple-events/by-creator/Tech%20Academy"
 ```
 
 ### Update an Event
 
 ```bash
-curl -X PATCH http://localhost:3001/api/simple-events/EVENT_ID \
+curl -X PATCH http://localhost:3003/api/simple-events/EVENT_ID \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Advanced Web Development",
@@ -109,7 +109,7 @@ curl -X PATCH http://localhost:3001/api/simple-events/EVENT_ID \
 ### Delete an Event
 
 ```bash
-curl -X DELETE http://localhost:3001/api/simple-events/EVENT_ID
+curl -X DELETE http://localhost:3003/api/simple-events/EVENT_ID
 ```
 
 ## Event Object Structure
