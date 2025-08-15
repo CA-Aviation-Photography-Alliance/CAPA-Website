@@ -1,7 +1,9 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { PUBLIC_AUTH0_DOMAIN } from '$env/static/public';
 import { env } from '$env/dynamic/private';
+
+// Get public environment variables dynamically to handle missing values
+const PUBLIC_AUTH0_DOMAIN = env.PUBLIC_AUTH0_DOMAIN;
 
 // Get management API credentials from environment
 const AUTH0_MANAGEMENT_CLIENT_ID = env.AUTH0_MANAGEMENT_CLIENT_ID;
@@ -9,17 +11,18 @@ const AUTH0_MANAGEMENT_CLIENT_SECRET = env.AUTH0_MANAGEMENT_CLIENT_SECRET;
 
 export const PATCH: RequestHandler = async ({ request }) => {
 	try {
-		// Check if Auth0 Management API is configured
-		if (!AUTH0_MANAGEMENT_CLIENT_ID || !AUTH0_MANAGEMENT_CLIENT_SECRET) {
+		// Check if Auth0 is configured
+		if (!PUBLIC_AUTH0_DOMAIN || !AUTH0_MANAGEMENT_CLIENT_ID || !AUTH0_MANAGEMENT_CLIENT_SECRET) {
 			return json(
 				{
 					error: 'Profile editing is not configured yet',
 					setup_required: true,
 					instructions: [
-						'1. Create a Machine-to-Machine application in Auth0 Dashboard',
-						'2. Authorize it for Auth0 Management API with read:users and update:users scopes',
-						'3. Add AUTH0_MANAGEMENT_CLIENT_ID and AUTH0_MANAGEMENT_CLIENT_SECRET to your .env file',
-						'4. See AUTH0_SETUP.md for detailed instructions'
+						'1. Set PUBLIC_AUTH0_DOMAIN environment variable',
+						'2. Create a Machine-to-Machine application in Auth0 Dashboard',
+						'3. Authorize it for Auth0 Management API with read:users and update:users scopes',
+						'4. Add AUTH0_MANAGEMENT_CLIENT_ID and AUTH0_MANAGEMENT_CLIENT_SECRET to your .env file',
+						'5. See AUTH0_SETUP.md for detailed instructions'
 					]
 				},
 				{ status: 501 }

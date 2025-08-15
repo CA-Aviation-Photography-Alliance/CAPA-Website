@@ -1,4 +1,8 @@
-import { PUBLIC_AUTH0_DOMAIN, PUBLIC_AUTH0_CLIENT_ID } from '$env/static/public';
+import { env } from '$env/dynamic/public';
+
+// Get environment variables with fallbacks
+const PUBLIC_AUTH0_DOMAIN = env.PUBLIC_AUTH0_DOMAIN || '';
+const PUBLIC_AUTH0_CLIENT_ID = env.PUBLIC_AUTH0_CLIENT_ID || '';
 
 export const auth0Config = {
 	domain: PUBLIC_AUTH0_DOMAIN,
