@@ -1,7 +1,8 @@
 <script lang="ts">
-	import { createEventDispatcher, tick } from 'svelte';
+	import { createEventDispatcher } from 'svelte';
 	import { authStore, getAccessToken, login } from '$lib/auth/store';
 	import type { User } from '@auth0/auth0-spa-js';
+	import { buildApiUrl } from '$lib/config/api';
 
 	export let isOpen = false;
 	export let eventData = null;
@@ -105,8 +106,7 @@
 					})
 			};
 
-			const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3003';
-			const response = await fetch(`${apiUrl}/api/simple-events/${eventData._id}`, {
+			const response = await fetch(buildApiUrl(`/api/simple-events/${eventData._id}`), {
 				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json',
@@ -166,8 +166,7 @@
 				return;
 			}
 
-			const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3003';
-			const response = await fetch(`${apiUrl}/api/simple-events/${eventData._id}`, {
+			const response = await fetch(buildApiUrl(`/api/simple-events/${eventData._id}`), {
 				method: 'DELETE',
 				headers: {
 					Authorization: `Bearer ${token}`

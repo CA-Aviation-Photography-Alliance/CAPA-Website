@@ -4,11 +4,25 @@ import { env } from '$env/dynamic/public';
 const PUBLIC_AUTH0_DOMAIN = env.PUBLIC_AUTH0_DOMAIN || '';
 const PUBLIC_AUTH0_CLIENT_ID = env.PUBLIC_AUTH0_CLIENT_ID || '';
 
+// Get environment-specific redirect URI
+const getRedirectUri = (): string => {
+	if (typeof window !== 'undefined') {
+		return window.location.origin;
+	}
+
+	// Fallback for SSR - use production URL in production, localhost in development
+	if (import.meta.env.PROD) {
+		return 'https://capacommunity.net';
+	}
+
+	return 'http://localhost:5173';
+};
+
 export const auth0Config = {
 	domain: PUBLIC_AUTH0_DOMAIN,
 	clientId: PUBLIC_AUTH0_CLIENT_ID,
 	authorizationParams: {
-		redirect_uri: 'http://localhost:5173',
+		redirect_uri: getRedirectUri(),
 		audience: `https://${PUBLIC_AUTH0_DOMAIN}/api/v2/`,
 		scope: 'openid profile email'
 	},

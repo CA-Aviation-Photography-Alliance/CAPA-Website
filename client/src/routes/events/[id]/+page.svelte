@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { get } from 'svelte/store';
-	const API_URL = import.meta.env.VITE_API_URL;
+	import { buildApiUrl } from '$lib/config/api';
 
 	let eventId: string = '';
 	let event: any = null;
@@ -18,7 +18,7 @@
 		loading = true;
 		error = '';
 		try {
-			const res = await fetch(`${API_URL}/api/simple-events/${eventId}`);
+			const res = await fetch(buildApiUrl(`/api/simple-events/${eventId}`));
 			if (!res.ok) throw new Error('Failed to fetch event');
 			event = await res.json();
 			// console.log('Fetched event:', event);

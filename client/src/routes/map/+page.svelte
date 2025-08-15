@@ -5,6 +5,7 @@
 	import CreateEventModal from '$lib/components/events/CreateEventModal.svelte';
 	import EditEventModal from '$lib/components/events/EditEventModal.svelte';
 	import EventCard from '$lib/components/events/EventCard.svelte';
+	import { buildApiUrl } from '$lib/config/api';
 
 	let mapElement: HTMLDivElement;
 	let searchTerm = '';
@@ -81,7 +82,7 @@
 
 	async function fetchAirports() {
 		try {
-			const response = await fetch('http://localhost:3003/api/airports');
+			const response = await fetch(buildApiUrl('/api/airports'));
 			if (!response.ok) {
 				throw new Error(`HTTP error! status: ${response.status}`);
 			}
@@ -95,7 +96,7 @@
 	async function fetchEvents() {
 		eventsLoading = true;
 		try {
-			const response = await fetch('http://localhost:3003/api/simple-events?limit=100');
+			const response = await fetch(buildApiUrl('/api/simple-events?limit=100'));
 			if (!response.ok) {
 				throw new Error(`HTTP error! status: ${response.status}`);
 			}

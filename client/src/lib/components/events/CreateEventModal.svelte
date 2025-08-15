@@ -2,6 +2,7 @@
 	import { createEventDispatcher } from 'svelte';
 	import { authStore, getAccessToken, login } from '$lib/auth/store';
 	import type { User } from '@auth0/auth0-spa-js';
+	import { buildApiUrl } from '$lib/config/api';
 
 	export let isOpen = false;
 	export let formData;
@@ -115,8 +116,7 @@
 
 			// console.log('ACCESS TOKEN:', token);
 
-			const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3003';
-			const response = await fetch(`${apiUrl}/api/simple-events`, {
+			const response = await fetch(buildApiUrl('/api/simple-events'), {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
