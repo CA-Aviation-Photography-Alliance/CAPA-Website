@@ -1,8 +1,8 @@
 <script>
-	let { label, href, target = undefined, rel = undefined } = $props();
+	let { label, href, target = undefined, rel = undefined, onclick = undefined } = $props();
 </script>
 
-<a class="link" {href} {target} {rel}>{label}</a>
+<a class="link" {href} {target} {rel} {onclick}>{label}</a>
 
 <style>
 	.link {

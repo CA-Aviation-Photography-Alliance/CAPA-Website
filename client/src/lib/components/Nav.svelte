@@ -1,7 +1,7 @@
 <script lang="ts">
 	import NavLink from './NavLink.svelte';
-	import LoginButton from './LoginButton.svelte';
 	import UserProfile from './UserProfile.svelte';
+	import { login } from '$lib/auth/store';
 	import { fade } from 'svelte/transition';
 	import { onMount } from 'svelte';
 	import { authStore, initAuth0 } from '$lib/auth/store';
@@ -73,13 +73,11 @@
 		{/if}
 
 		<!-- Auth section -->
-		<div class="auth-section">
-			{#if $authStore.isAuthenticated}
-				<UserProfile showFullProfile={false} />
-			{:else if !$authStore.isLoading}
-				<LoginButton variant="minimal" size="small" />
-			{/if}
-		</div>
+		{#if $authStore.isAuthenticated}
+			<UserProfile showFullProfile={false} />
+		{:else if !$authStore.isLoading}
+			<NavLink label="Sign In" href="#" onclick={() => login()} />
+		{/if}
 	</div>
 </div>
 
@@ -103,16 +101,9 @@
 		<NavLink label="Donate" href="/donate" />
 		{#if $authStore.isAuthenticated}
 			<NavLink label="Profile" href="/profile" />
+		{:else if !$authStore.isLoading}
+			<NavLink label="Sign In" href="#" onclick={() => login()} />
 		{/if}
-
-		<!-- Mobile auth section -->
-		<!-- <div class="mobile-auth">
-			{#if $authStore.isAuthenticated}
-				<UserProfile showFullProfile={false} size="small" />
-			{:else if !$authStore.isLoading}
-				<LoginButton variant="minimal" size="normal" />
-			{/if}
-		</div> -->
 	</div>
 {/if}
 
@@ -122,7 +113,6 @@
 		border: none;
 		padding: 0;
 		cursor: pointer;
-		left: 0px;
 		flex-shrink: 0;
 	}
 
@@ -159,13 +149,11 @@
 		display: flex;
 		gap: 2rem;
 		align-items: center;
-		flex-shrink: 1;
+		flex: 1;
+		justify-content: center;
 		min-width: 0;
 	}
 
-	.auth-section {
-		margin-left: 1rem;
-	}
 	.hamburger {
 		display: none;
 		flex-direction: column;
