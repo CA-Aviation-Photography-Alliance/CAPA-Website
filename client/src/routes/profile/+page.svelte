@@ -50,11 +50,6 @@
 							</div>
 						</div>
 					</div>
-
-					<div class="preferences-section">
-						<h2>Preferences</h2>
-						<p class="coming-soon">User preferences coming soon...</p>
-					</div>
 				{/if}
 			</div>
 		</div>

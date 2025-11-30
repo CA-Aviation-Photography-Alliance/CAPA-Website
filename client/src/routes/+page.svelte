@@ -1,11 +1,12 @@
 <div class="main">
 	<!-- <div class="spacer" style="height:70px; width: 100%;"></div> -->
 	<div class="home">
-		<div class="title">California Aviation Photography Alliance</div>
+		<div class="title"><img src="capa-logo.png" /></div>
+		<div class="subtitle">California Aviation Photography Alliance</div>
 		<img class="homeImg" src="homescreen-dabyt.jpg" alt="Home screen image" />
 		<div class="infocard">Photo by @Barlius</div>
 	</div>
-	<div class="buttons">
+	<div class="secondary">
 		<a class="button" href="/map">Check out events!</a>
 		<a class="button" href="/guides">Read the Guides!</a>
 		<a class="button" href="https://forum.capacommunity.net">Post on the forum!</a>
@@ -13,7 +14,7 @@
 </div>
 
 <style>
-	.buttons {
+	.secondary {
 		position: absolute;
 		top: 570px;
 		display: flex;
@@ -80,16 +81,37 @@
 		font-weight: bold;
 		text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 	}
+	.subtitle {
+		width: 100%;
+		font-size: 3em;
+		z-index: 1;
+		position: absolute;
+		top: 300px;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		backdrop-filter: blur(10);
+		color: var(--color-capa-white);
+		font-family: 'eurostile', sans-serif;
+		font-weight: bold;
+		text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+	}
 
 	/* @media (max-width: 1000px) {
 		.title {
 			font-size: 3em;
 		}
+		.subtitle {
+			font-size: 1.5em;
+		}
+
 	} */
 
 	@media (max-width: 700px) {
 		.title {
 			font-size: 3em;
+		}
+		.subtitle {
+			font-size: 1.5em;
 		}
 	}
 
