@@ -5,9 +5,11 @@
 	import { onMount } from 'svelte';
 	import { authStore } from '$lib/auth/store';
 	import LoginModal from './LoginModal.svelte';
+	import { moderationService } from '$lib/services/forum/moderationService';
 
 	let menuOpen: boolean = false;
 	let showLoginModal: boolean = false;
+	let canModerate: boolean = false;
 
 	function handleLoginClick() {
 		showLoginModal = true;
@@ -35,6 +37,21 @@
 			window.removeEventListener('resize', checkWindowSize);
 		};
 	});
+
+	// Check moderation permissions when user auth state changes
+	$: if ($authStore.isAuthenticated) {
+		checkModerationPermissions();
+	} else {
+		canModerate = false;
+	}
+
+	async function checkModerationPermissions() {
+		try {
+			canModerate = await moderationService.hasModeratorPermissions();
+		} catch (error) {
+			canModerate = false;
+		}
+	}
 </script>
 
 <div class="nav">
@@ -66,16 +83,14 @@
 			rel="noopener noreferrer"
 		/>
 		<NavLink label="Guides" href="/guides" />
-		<NavLink
-			label="Community"
-			href="https://forum.capacommunity.net"
-			target="_blank"
-			rel="noopener noreferrer"
-		/>
+		<NavLink label="Forum" href="/forum" />
 		<NavLink label="Map" href="/map" />
 		<!-- <NavLink label="Donate" href="/donate" /> -->
 		{#if $authStore.isAuthenticated}
 			<NavLink label="Profile" href="/profile" />
+			{#if canModerate}
+				<NavLink label="Moderation" href="/forum/moderation" />
+			{/if}
 		{/if}
 
 		<!-- Auth section -->
@@ -97,16 +112,14 @@
 			rel="noopener noreferrer"
 		/>
 		<NavLink label="Guides" href="/guides" />
-		<NavLink
-			label="Community"
-			href="https://forum.capacommunity.net"
-			target="_blank"
-			rel="noopener noreferrer"
-		/>
+		<NavLink label="Forum" href="/forum" />
 		<NavLink label="Map" href="/map" />
 		<NavLink label="Donate" href="/donate" />
 		{#if $authStore.isAuthenticated}
 			<NavLink label="Profile" href="/profile" />
+			{#if canModerate}
+				<NavLink label="Moderation" href="/forum/moderation" />
+			{/if}
 		{:else if !$authStore.isLoading}
 			<NavLink label="Sign In" href="#" onclick={handleLoginClick} />
 		{/if}

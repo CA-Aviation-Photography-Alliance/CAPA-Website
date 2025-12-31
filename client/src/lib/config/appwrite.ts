@@ -5,16 +5,24 @@ import { browser } from '$app/environment';
 const APPWRITE_ENDPOINT = import.meta.env.VITE_APPWRITE_ENDPOINT || 'https://cloud.appwrite.io/v1';
 const APPWRITE_PROJECT_ID = import.meta.env.VITE_APPWRITE_PROJECT_ID || '';
 const APPWRITE_DATABASE_ID = import.meta.env.VITE_APPWRITE_DATABASE_ID || '';
+const APPWRITE_FORUM_DATABASE_ID =
+	import.meta.env.VITE_APPWRITE_FORUM_DATABASE_ID || '695566410019a3850388';
 
 // Collection IDs
 export const COLLECTIONS = {
 	EVENTS: import.meta.env.VITE_APPWRITE_EVENTS_COLLECTION_ID || '',
-	AIRPORTS: import.meta.env.VITE_APPWRITE_AIRPORTS_COLLECTION_ID || ''
+	AIRPORTS: import.meta.env.VITE_APPWRITE_AIRPORTS_COLLECTION_ID || '',
+	FORUM_CATEGORIES: import.meta.env.VITE_APPWRITE_FORUM_CATEGORIES_COLLECTION_ID || '',
+	FORUM_POSTS: import.meta.env.VITE_APPWRITE_FORUM_POSTS_COLLECTION_ID || '',
+	FORUM_COMMENTS: import.meta.env.VITE_APPWRITE_FORUM_COMMENTS_COLLECTION_ID || '',
+	MODERATION_ACTIONS: import.meta.env.VITE_APPWRITE_MODERATION_ACTIONS_COLLECTION_ID || '',
+	USER_REPORTS: import.meta.env.VITE_APPWRITE_USER_REPORTS_COLLECTION_ID || ''
 } as const;
 
 // Storage bucket IDs
 export const STORAGE_BUCKETS = {
-	EVENT_ATTACHMENTS: import.meta.env.VITE_APPWRITE_EVENT_ATTACHMENTS_BUCKET_ID || ''
+	EVENT_ATTACHMENTS: import.meta.env.VITE_APPWRITE_EVENT_ATTACHMENTS_BUCKET_ID || '',
+	FORUM_ATTACHMENTS: import.meta.env.VITE_APPWRITE_FORUM_ATTACHMENTS_BUCKET_ID || ''
 } as const;
 
 // Initialize Appwrite client
@@ -32,6 +40,7 @@ export const teams = new Teams(client);
 
 // Database helper functions
 export const getDatabase = () => APPWRITE_DATABASE_ID;
+export const getForumDatabase = () => APPWRITE_FORUM_DATABASE_ID;
 
 // Configuration validation
 export const validateAppwriteConfig = (): boolean => {
@@ -57,39 +66,6 @@ export const validateAppwriteConfig = (): boolean => {
 
 	return true;
 };
-
-// Log configuration in development
-if (browser && import.meta.env.DEV) {
-	console.log('Appwrite Configuration:', {
-		endpoint: APPWRITE_ENDPOINT || '❌ NOT SET',
-		projectId: APPWRITE_PROJECT_ID || '❌ NOT SET',
-		databaseId: APPWRITE_DATABASE_ID || '❌ NOT SET',
-		collections: COLLECTIONS,
-		isValid: validateAppwriteConfig()
-	});
-
-	// Check if client is properly configured
-	if (!APPWRITE_PROJECT_ID) {
-		console.error('❌ VITE_APPWRITE_PROJECT_ID is not set in .env file');
-	}
-	if (!APPWRITE_DATABASE_ID) {
-		console.error('❌ VITE_APPWRITE_DATABASE_ID is not set in .env file');
-	}
-	if (!COLLECTIONS.EVENTS) {
-		console.error('❌ VITE_APPWRITE_EVENTS_COLLECTION_ID is not set in .env file');
-	}
-
-	// Test if client can make requests
-	if (APPWRITE_PROJECT_ID && APPWRITE_ENDPOINT) {
-		console.log('Appwrite client configured, testing connection...');
-		account
-			.get()
-			.then(() => console.log('Appwrite connection successful'))
-			.catch((err) =>
-				console.log('No active session (this is normal if not logged in):', err.message)
-			);
-	}
-}
 
 // Export utility function to generate document IDs
 export const generateId = () => ID.unique();
