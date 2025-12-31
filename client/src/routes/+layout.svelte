@@ -2,15 +2,16 @@
 	import '../app.css';
 	import Nav from '$lib/components/Nav.svelte';
 	import { onMount } from 'svelte';
-	import { authStore, initAuth0 } from '$lib/auth/store.js';
+	import { authStore } from '$lib/auth/store.js';
 
 	let { children } = $props();
 
-	onMount(async () => {
-		// Initialize Auth0 when the app loads
-		await initAuth0();
-	});
+	// Auth is automatically initialized when the auth service module loads
 </script>
+
+<svelte:head>
+	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+</svelte:head>
 
 <Nav />
 {@render children()}

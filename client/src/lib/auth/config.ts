@@ -1,16 +1,36 @@
-import { env } from '$env/dynamic/public';
+import { client, account } from '$lib/config/appwrite';
+import { browser } from '$app/environment';
 
-// Get environment variables with fallbacks
-const PUBLIC_AUTH0_DOMAIN = env.PUBLIC_AUTH0_DOMAIN || '';
-const PUBLIC_AUTH0_CLIENT_ID = env.PUBLIC_AUTH0_CLIENT_ID || '';
+// Appwrite Auth Configuration
+export const appwriteAuthConfig = {
+	// Password requirements
+	passwordRequirements: {
+		minLength: 8,
+		requireUppercase: false,
+		requireLowercase: false,
+		requireNumbers: false,
+		requireSpecialChars: false
+	},
 
-// Get environment-specific redirect URI
-const getRedirectUri = (): string => {
-	if (typeof window !== 'undefined') {
+	// Email verification settings
+	emailVerification: {
+		required: false,
+		redirectUrl: browser ? `${window.location.origin}/verify-email` : '/verify-email'
+	},
+
+	// Password reset settings
+	passwordReset: {
+		redirectUrl: browser ? `${window.location.origin}/reset-password` : '/reset-password'
+	}
+};
+
+// Helper function to get current origin
+export const getCurrentOrigin = (): string => {
+	if (browser) {
 		return window.location.origin;
 	}
 
-	// Fallback for SSR - use production URL in production, localhost in development
+	// Fallback for SSR
 	if (import.meta.env.PROD) {
 		return 'https://capacommunity.net';
 	}
@@ -18,31 +38,36 @@ const getRedirectUri = (): string => {
 	return 'http://localhost:5173';
 };
 
-export const auth0Config = {
-	domain: PUBLIC_AUTH0_DOMAIN,
-	clientId: PUBLIC_AUTH0_CLIENT_ID,
-	authorizationParams: {
-		redirect_uri: getRedirectUri(),
-		audience: `https://${PUBLIC_AUTH0_DOMAIN}/api/v2/`,
-		scope: 'openid profile email'
-	},
-	cacheLocation: 'localstorage' as const,
-	useRefreshTokens: true
+// Validate Appwrite configuration
+export const validateAppwriteAuth = (): boolean => {
+	try {
+		// Check if client is properly configured
+		if (!client) {
+			console.error('❌ Appwrite client not configured');
+			return false;
+		}
+
+		// Check if account service is available
+		if (!account) {
+			console.error('❌ Appwrite account service not available');
+			return false;
+		}
+
+		return true;
+	} catch (error) {
+		console.error('❌ Appwrite auth validation failed:', error);
+		return false;
+	}
 };
 
-// Debug logging to help troubleshoot callback URL issues
-// if (typeof window !== 'undefined') {
-// 	console.log('=== Auth0 Debug Info ===');
-// 	console.log('Domain:', PUBLIC_AUTH0_DOMAIN);
-// 	console.log('Client ID:', PUBLIC_AUTH0_CLIENT_ID);
-// 	console.log('Redirect URI being used:', window.location.origin);
-// 	console.log('Current URL:', window.location.href);
-// 	console.log('Window location parts:');
-// 	console.log('  - protocol:', window.location.protocol);
-// 	console.log('  - hostname:', window.location.hostname);
-// 	console.log('  - port:', window.location.port);
-// 	console.log('  - origin:', window.location.origin);
-// 	console.log('=== Copy this exact URL to Auth0 Allowed Callback URLs ===');
-// 	console.log(window.location.origin);
-// 	console.log('====================================================');
-// }
+// Debug logging for development
+if (browser && import.meta.env.DEV) {
+	console.log('Appwrite Auth Configuration:', {
+		passwordRequirements: appwriteAuthConfig.passwordRequirements,
+		emailVerification: appwriteAuthConfig.emailVerification.required,
+		isValid: validateAppwriteAuth()
+	});
+}
+
+// Export the configured account service
+export { account };

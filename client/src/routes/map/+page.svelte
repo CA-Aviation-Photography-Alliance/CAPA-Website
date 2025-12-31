@@ -5,7 +5,7 @@
 	import CreateEventModal from '$lib/components/events/CreateEventModal.svelte';
 	import EditEventModal from '$lib/components/events/EditEventModal.svelte';
 	import EventCard from '$lib/components/events/EventCard.svelte';
-	import { buildApiUrl } from '$lib/config/api';
+	import { fetchEvents, fetchAirports } from '$lib/config/api';
 
 	let mapElement: HTMLDivElement;
 	let searchTerm = '';
@@ -80,44 +80,47 @@
 		return true;
 	});
 
-	async function fetchAirports() {
+	async function fetchAirportsData() {
+		loading = true;
 		try {
-			const response = await fetch(buildApiUrl('/api/airports'));
-			if (!response.ok) {
-				throw new Error(`HTTP error! status: ${response.status}`);
+			const result = await fetchAirports();
+			if (result.success) {
+				airports = result.data || [];
+			} else {
+				throw new Error(result.error || 'Failed to fetch airports');
 			}
-			const result = await response.json();
-			airports = result.data || [];
 		} catch (error) {
 			console.error('Error fetching airports:', error);
+		} finally {
+			loading = false;
 		}
 	}
 
-	async function fetchEvents() {
-		eventsLoading = true;
+	async function fetchEventsData() {
+		loading = true;
 		try {
-			const response = await fetch(buildApiUrl('/api/simple-events?limit=100'));
-			if (!response.ok) {
-				throw new Error(`HTTP error! status: ${response.status}`);
+			const result = await fetchEvents({ limit: 100 });
+			if (result.success) {
+				// Filter out events with incomplete data
+				const rawEvents = result.data || [];
+				events = rawEvents.filter(
+					(event) =>
+						event &&
+						event.$id &&
+						event.title &&
+						event.startdate &&
+						event.enddate &&
+						event.location &&
+						event.location.latitude &&
+						event.location.longitude
+				);
+			} else {
+				throw new Error(result.error || 'Failed to fetch events');
 			}
-			const result = await response.json();
-			// Filter out events with incomplete data
-			const rawEvents = result.data || [];
-			events = rawEvents.filter(
-				(event) =>
-					event &&
-					event._id &&
-					event.title &&
-					event.startdate &&
-					event.enddate &&
-					event.creator &&
-					(typeof event.creator === 'string' || event.creator.name)
-			);
-			// console.log(`Filtered ${rawEvents.length} events to ${events.length} valid events`);
 		} catch (error) {
 			console.error('Error fetching events:', error);
 		} finally {
-			eventsLoading = false;
+			loading = false;
 		}
 	}
 
@@ -189,6 +192,15 @@
 					? event.creator
 					: event.creator.nickname || event.creator.name || event.creator.email || 'Unknown';
 			const creatorUserId = typeof event.creator === 'string' ? null : event.creator.userId;
+			console.log('Event creator debug:', {
+				eventId: event.$id,
+				eventTitle: event.title,
+				creator: event.creator,
+				creatorUserId: creatorUserId,
+				currentUser: $authStore.user,
+				currentUserId: $authStore.user?.$id,
+				canEdit: $authStore.user && creatorUserId && $authStore.user.$id === creatorUserId
+			});
 
 			marker.bindPopup(`
 				<div class="popup-content event-popup">
@@ -197,10 +209,10 @@
 					<p class="event-date">${startDate} at ${startTime}</p>
 					<p class="event-description">${event.description.substring(0, 100)}${event.description.length > 100 ? '...' : ''}</p>
 					<p class="event-creator">By ${creatorUsername}</p>
-					<a href="/events/${event._id}" class="popup-link view-btn" target="_blank" rel="noopener noreferrer">View Details</a>
+					<a href="/events/${event.$id}" class="popup-link view-btn" target="_blank" rel="noopener noreferrer">View Details</a>
 					${
-						$authStore.user && creatorUserId && $authStore.user.sub === creatorUserId
-							? `<button onclick="editEvent('${event._id}')" class="popup-link edit-event-btn">Edit Event</button>`
+						$authStore.user && creatorUserId && $authStore.user.$id === creatorUserId
+							? `<button onclick="editEvent('${event.$id}')" class="popup-link edit-event-btn">Edit Event</button>`
 							: ''
 					}
 				</div>
@@ -231,7 +243,7 @@
 
 	function handleEventCreated(event) {
 		events = [...events, event.detail];
-		fetchEvents(); // Refresh events list
+		fetchEventsData(); // Refresh events list
 		createEventFormData = {
 			startdate: '',
 			enddate: '',
@@ -318,10 +330,15 @@
 	// Global function for popup buttons (client-side only)
 	$: if (browser && typeof window !== 'undefined') {
 		window.editEvent = function (eventId) {
-			const event = events.find((e) => e._id === eventId);
+			console.log('editEvent called with ID:', eventId);
+			const event = events.find((e) => e.$id === eventId);
+			console.log('Found event:', event);
 			if (event) {
 				selectedEvent = event;
 				showEditModal = true;
+				console.log('Opening edit modal for event:', event.title);
+			} else {
+				console.error('Event not found for ID:', eventId);
 			}
 		};
 	}
@@ -335,7 +352,7 @@
 
 		try {
 			// Fetch data first
-			await Promise.all([fetchAirports(), fetchEvents()]);
+			await Promise.all([fetchAirportsData(), fetchEventsData()]);
 
 			// Wait for DOM to be ready and element to be bound
 			await new Promise((resolve) => setTimeout(resolve, 500));
@@ -605,7 +622,7 @@
 											compact={true}
 											showEditButton={$authStore.user &&
 												typeof event.creator === 'object' &&
-												$authStore.user.sub === event.creator.userId}
+												$authStore.user.$id === event.creator.userId}
 											on:edit={handleEditEvent}
 										/>
 									{:else}

@@ -1,21 +1,27 @@
 <script lang="ts">
 	import NavLink from './NavLink.svelte';
 	import UserProfile from './UserProfile.svelte';
-	import { login } from '$lib/auth/store';
 	import { fade } from 'svelte/transition';
 	import { onMount } from 'svelte';
-	import { authStore, initAuth0 } from '$lib/auth/store';
+	import { authStore } from '$lib/auth/store';
+	import LoginModal from './LoginModal.svelte';
 
 	let menuOpen: boolean = false;
+	let showLoginModal: boolean = false;
+
+	function handleLoginClick() {
+		showLoginModal = true;
+	}
+
+	function handleLoginSuccess() {
+		showLoginModal = false;
+	}
 
 	function toggleMenu() {
 		menuOpen = !menuOpen;
 	}
 
 	onMount(() => {
-		// Initialize Auth0
-		initAuth0();
-
 		function checkWindowSize() {
 			if (window.innerWidth > 1000) {
 				menuOpen = false;
@@ -76,7 +82,7 @@
 		{#if $authStore.isAuthenticated}
 			<UserProfile showFullProfile={false} />
 		{:else if !$authStore.isLoading}
-			<NavLink label="Sign In" href="#" onclick={() => login()} />
+			<NavLink label="Sign In" href="#" onclick={handleLoginClick} />
 		{/if}
 	</div>
 </div>
@@ -102,10 +108,13 @@
 		{#if $authStore.isAuthenticated}
 			<NavLink label="Profile" href="/profile" />
 		{:else if !$authStore.isLoading}
-			<NavLink label="Sign In" href="#" onclick={() => login()} />
+			<NavLink label="Sign In" href="#" onclick={handleLoginClick} />
 		{/if}
 	</div>
 {/if}
+
+<!-- LoginModal placed outside nav structure to prevent CSS conflicts -->
+<LoginModal bind:isOpen={showLoginModal} onSuccess={handleLoginSuccess} />
 
 <style>
 	.logo-button {

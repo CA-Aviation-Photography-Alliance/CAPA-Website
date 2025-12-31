@@ -20,14 +20,10 @@
 		}
 	}
 
-	function getInitials(name: string | undefined): string {
-		if (!name) return '?';
-		return name
-			.split(' ')
-			.map((word) => word.charAt(0))
-			.join('')
-			.toUpperCase()
-			.slice(0, 2);
+	function getInitials(username: string | undefined): string {
+		if (!username) return '?';
+		// For usernames, just take first 2 characters
+		return username.slice(0, 2).toUpperCase();
 	}
 
 	function openEditModal() {
@@ -56,19 +52,19 @@
 						<img src={$authStore.user.picture} alt="Profile" class="avatar-image" />
 					{:else}
 						<div class="avatar-placeholder">
-							{getInitials($authStore.user.name || $authStore.user.email)}
+							{getInitials($authStore.user.username || $authStore.user.email)}
 						</div>
 					{/if}
 				</div>
 
 				<div class="user-info">
 					<h3 class="user-name">
-						{$authStore.user.name || 'User'}
+						{$authStore.user.username || 'User'}
 					</h3>
 					<p class="user-email">
 						{$authStore.user.email}
 					</p>
-					{#if $authStore.user.nickname && $authStore.user.nickname !== $authStore.user.name}
+					{#if $authStore.user.nickname && $authStore.user.nickname !== $authStore.user.username}
 						<p class="user-nickname">
 							@{$authStore.user.nickname}
 						</p>
@@ -87,13 +83,13 @@
 					<img src={$authStore.user.picture} alt="Profile" class="avatar-image-compact" />
 				{:else}
 					<div class="avatar-placeholder-compact">
-						{getInitials($authStore.user.name || $authStore.user.email)}
+						{getInitials($authStore.user.username || $authStore.user.email)}
 					</div>
 				{/if}
 
 				<div class="user-info-compact">
 					<span class="user-name-compact">
-						{$authStore.user.name || $authStore.user.email?.split('@')[0] || 'User'}
+						{$authStore.user.username || $authStore.user.email?.split('@')[0] || 'User'}
 					</span>
 				</div>
 

@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
-	import { authStore, getAccessToken, login } from '$lib/auth/store';
-	import type { User } from '@auth0/auth0-spa-js';
-	import { buildApiUrl } from '$lib/config/api';
+	import { authStore } from '$lib/auth/store';
+	import { apiRequest } from '$lib/config/api';
 
 	export let isOpen = false;
 	export let formData;
@@ -22,15 +21,8 @@
 	async function retryWithFreshAuth() {
 		isRetrying = true;
 		showAuthError = false;
-
-		try {
-			await login();
-		} catch (error) {
-			console.error('Retry authentication failed:', error);
-			errors = ['Unable to refresh authentication. Please try again.'];
-		} finally {
-			isRetrying = false;
-		}
+		errors = ['Please refresh the page and try logging in again.'];
+		isRetrying = false;
 	}
 
 	function formatDateTimeLocal(date: Date): string {
@@ -77,12 +69,11 @@
 	async function handleSubmit() {
 		if (!validateForm()) return;
 
-		const user = $authStore.user as User;
-		// console.log('Auth0 user:', user);
+		const user = $authStore.user;
 
-		if (!user || !user.email || !(user.name || user.nickname)) {
+		if (!user || !user.email || !user.username) {
 			errors = [
-				'Your Auth0 profile is missing a name or email. Please update your profile and try again.'
+				'Your profile is missing a username or email. Please update your profile and try again.'
 			];
 			isSubmitting = false;
 			return;
@@ -92,13 +83,6 @@
 		showAuthError = false;
 
 		try {
-			const token = await getAccessToken();
-			if (!token) {
-				showAuthError = true;
-				errors = ['Authentication session expired. Please log in again.'];
-				return;
-			}
-
 			const eventData = {
 				startdate: new Date(formData.startdate).toISOString(),
 				enddate: new Date(formData.enddate).toISOString(),
@@ -114,34 +98,20 @@
 					})
 			};
 
-			// console.log('ACCESS TOKEN:', token);
+			const result = await apiRequest.events.create(eventData);
 
-			const response = await fetch(buildApiUrl('/api/simple-events'), {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `Bearer ${token}`
-				},
-				body: JSON.stringify(eventData)
-			});
-
-			const result = await response.json();
-
-			if (!response.ok) {
-				throw new Error(result.error || 'Failed to create event');
-			}
-
-			dispatch('eventCreated', result.data);
+			dispatch('eventCreated', result);
 			closeModal();
 		} catch (error) {
 			console.error('Error creating event:', error);
 
 			if (error instanceof Error) {
-				if (error.message.includes('authentication') || error.message.includes('token')) {
+				if (error.message.includes('Authentication required')) {
 					showAuthError = true;
-					errors = ['Authentication error. Please try logging in again.'];
-				} else if (error.message.includes('network') || error.message.includes('fetch')) {
-					errors = ['Network error. Please check your connection and try again.'];
+					errors = ['Please log in to create events.'];
+				} else if (error.message.includes('permission')) {
+					showAuthError = true;
+					errors = ['You do not have permission to create events.'];
 				} else {
 					errors = [error.message];
 				}

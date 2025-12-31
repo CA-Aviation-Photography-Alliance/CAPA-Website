@@ -37,7 +37,7 @@
 	</div>
 	<a
 		class="view-details-btn"
-		href={`/events/${event._id}`}
+		href={`/events/${event.$id}`}
 		target="_blank"
 		rel="noopener noreferrer"
 	>

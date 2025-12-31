@@ -1,12 +1,13 @@
-import { writable } from 'svelte/store';
-import { createAuth0Client, type Auth0Client, type User } from '@auth0/auth0-spa-js';
-import { auth0Config } from './config';
+import { writable, derived } from 'svelte/store';
+import { browser } from '$app/environment';
+import { authService } from '$lib/services/auth';
+import type { AuthUser } from '$lib/types';
 
 // Auth state interface
 interface AuthState {
 	isLoading: boolean;
 	isAuthenticated: boolean;
-	user: User | null;
+	user: AuthUser | null;
 	error: string | null;
 }
 
@@ -18,201 +19,270 @@ const initialState: AuthState = {
 	error: null
 };
 
-// Create the auth store
+// Create the main auth store
 export const authStore = writable<AuthState>(initialState);
 
-// Auth0 client instance
-let auth0Client: Auth0Client | null = null;
+// Derived stores for convenience
+export const isLoading = derived(authStore, ($authStore) => $authStore.isLoading);
+export const isAuthenticated = derived(authStore, ($authStore) => $authStore.isAuthenticated);
+export const currentUser = derived(authStore, ($authStore) => $authStore.user);
+export const authError = derived(authStore, ($authStore) => $authStore.error);
 
-// Initialize Auth0
-export async function initAuth0() {
+// Initialize Appwrite Auth
+// Initialize auth when the module loads in browser
+export async function initAuth() {
+	if (!browser) return;
+
+	console.log('Starting auth store initialization');
+
 	try {
 		authStore.update((state) => ({ ...state, isLoading: true, error: null }));
 
-		auth0Client = await createAuth0Client(auth0Config);
+		// Initialize auth service
+		console.log('Calling authService.init()');
+		await authService.init();
+		console.log('Auth service initialized successfully');
 
-		// Check if user is authenticated
-		const isAuthenticated = await auth0Client.isAuthenticated();
-
-		let user: User | null = null;
-		if (isAuthenticated) {
-			user = (await auth0Client.getUser()) || null;
-		}
-
-		// Handle redirect callback
-		if (typeof window !== 'undefined' && window.location.search.includes('code=')) {
-			try {
-				await auth0Client.handleRedirectCallback();
-				window.history.replaceState({}, document.title, window.location.pathname);
-
-				// Re-check authentication after callback
-				const isAuthenticatedAfterCallback = await auth0Client.isAuthenticated();
-				if (isAuthenticatedAfterCallback) {
-					user = (await auth0Client.getUser()) || null;
-				}
-
-				authStore.set({
-					isLoading: false,
-					isAuthenticated: isAuthenticatedAfterCallback,
-					user,
-					error: null
-				});
-			} catch (error) {
-				console.error('Error handling redirect callback:', error);
-				authStore.set({
-					isLoading: false,
-					isAuthenticated: false,
-					user: null,
-					error: 'Failed to handle authentication callback'
-				});
-			}
-		} else {
-			authStore.set({
-				isLoading: false,
-				isAuthenticated,
-				user,
-				error: null
-			});
-		}
-	} catch (error) {
-		console.error('Error initializing Auth0:', error);
-		authStore.set({
-			isLoading: false,
-			isAuthenticated: false,
-			user: null,
-			error: 'Failed to initialize authentication'
+		// Subscribe to auth service stores
+		authService.user.subscribe((user) => {
+			console.log('User state updated:', user?.email || 'No user');
+			authStore.update((state) => ({ ...state, user }));
 		});
+
+		authService.isAuthenticated.subscribe((authenticated) => {
+			console.log('Auth state updated:', authenticated);
+			authStore.update((state) => ({ ...state, isAuthenticated: authenticated }));
+		});
+
+		authService.isLoading.subscribe((loading) => {
+			console.log('Loading state updated:', loading);
+			authStore.update((state) => ({ ...state, isLoading: loading }));
+		});
+
+		console.log('Auth store initialization complete');
+	} catch (error) {
+		// Handle guest/unauthorized errors as normal (user not logged in)
+		if (error?.code === 401 || error?.type === 'general_unauthorized_scope') {
+			console.log('Auth store initialized - user not logged in');
+			authStore.update((state) => ({
+				...state,
+				isLoading: false,
+				isAuthenticated: false,
+				user: null,
+				error: null
+			}));
+		} else {
+			console.error('❌ Auth store initialization failed:', {
+				message: error?.message,
+				code: error?.code,
+				type: error?.type,
+				stack: error?.stack,
+				fullError: error
+			});
+
+			authStore.update((state) => ({
+				...state,
+				isLoading: false,
+				error: 'Failed to initialize authentication'
+			}));
+		}
 	}
 }
 
-// Login function
-export async function login(redirectTo?: string) {
-	if (!auth0Client) {
-		throw new Error('Auth0 client not initialized');
-	}
-
+// Login with email and password
+export async function login(email: string, password: string) {
 	try {
-		await auth0Client.loginWithRedirect({
-			authorizationParams: {
-				...auth0Config.authorizationParams,
-				redirect_uri: redirectTo || (typeof window !== 'undefined' ? window.location.origin : '')
-			}
-		});
-	} catch (error) {
-		console.error('Login error:', error);
+		authStore.update((state) => ({ ...state, isLoading: true, error: null }));
+
+		const user = await authService.login(email, password);
+
 		authStore.update((state) => ({
 			...state,
-			error: 'Failed to initiate login'
+			isLoading: false,
+			isAuthenticated: true,
+			user,
+			error: null
 		}));
+
+		return user;
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : 'Login failed';
+		authStore.update((state) => ({
+			...state,
+			isLoading: false,
+			error: errorMessage
+		}));
+		throw error;
 	}
 }
 
-// Logout function
-export async function logout() {
-	if (!auth0Client) {
-		throw new Error('Auth0 client not initialized');
-	}
-
+// Register new user
+export async function register(email: string, password: string, username: string) {
 	try {
-		await auth0Client.logout({
-			logoutParams: {
-				returnTo: window.location.origin
-			}
-		});
+		authStore.update((state) => ({ ...state, isLoading: true, error: null }));
 
-		authStore.set({
+		const user = await authService.register(email, password, username);
+
+		authStore.update((state) => ({
+			...state,
+			isLoading: false,
+			isAuthenticated: true,
+			user,
+			error: null
+		}));
+
+		return user;
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : 'Registration failed';
+		authStore.update((state) => ({
+			...state,
+			isLoading: false,
+			error: errorMessage
+		}));
+		throw error;
+	}
+}
+
+// Logout
+export async function logout() {
+	try {
+		authStore.update((state) => ({ ...state, isLoading: true, error: null }));
+
+		await authService.logout();
+
+		authStore.update((state) => ({
+			...state,
 			isLoading: false,
 			isAuthenticated: false,
 			user: null,
 			error: null
-		});
+		}));
 	} catch (error) {
 		console.error('Logout error:', error);
+		// Even if logout fails on server, clear local state
 		authStore.update((state) => ({
 			...state,
-			error: 'Failed to logout'
+			isLoading: false,
+			isAuthenticated: false,
+			user: null,
+			error: null
 		}));
 	}
 }
 
-// Get access token
-export async function getAccessToken(): Promise<string | null> {
-	if (!auth0Client) {
-		throw new Error('Auth0 client not initialized');
-	}
-
+// Send email verification
+export async function sendEmailVerification() {
 	try {
-		return await auth0Client.getTokenSilently();
+		await authService.sendEmailVerification();
 	} catch (error) {
-		console.error('Error getting access token:', error);
-
-		// Check if it's a refresh token error
-		if (error instanceof Error && error.message.includes('refresh token')) {
-			console.warn('Refresh token expired, attempting to re-authenticate...');
-
-			try {
-				// Try to get a fresh token with cache disabled
-				return await auth0Client.getTokenSilently({
-					cacheMode: 'off',
-					ignoreCache: true
-				});
-			} catch (retryError) {
-				console.error('Token retry failed, redirecting to login...');
-
-				// Update auth store to show user is no longer authenticated
-				authStore.set({
-					isLoading: false,
-					isAuthenticated: false,
-					user: null,
-					error: 'Session expired. Please log in again.'
-				});
-
-				// Redirect to login after a short delay
-				setTimeout(() => {
-					login();
-				}, 1000);
-
-				return null;
-			}
-		}
-
-		return null;
+		const errorMessage =
+			error instanceof Error ? error.message : 'Failed to send verification email';
+		authStore.update((state) => ({
+			...state,
+			error: errorMessage
+		}));
+		throw error;
 	}
 }
 
-// Refresh user data from Auth0
-export async function refreshUser(): Promise<void> {
-	if (!auth0Client) {
-		throw new Error('Auth0 client not initialized');
-	}
-
+// Confirm email verification
+export async function confirmEmailVerification(userId: string, secret: string) {
 	try {
-		const isAuthenticated = await auth0Client.isAuthenticated();
+		await authService.confirmEmailVerification(userId, secret);
 
-		if (isAuthenticated) {
-			// Force Auth0 to re-authenticate silently to get fresh user data
-			try {
-				// Get a fresh token which forces user data refresh
-				await auth0Client.getTokenSilently({
-					cacheMode: 'off',
-					ignoreCache: true
-				});
+		// Refresh user data after verification
+		await refreshUser();
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : 'Email verification failed';
+		authStore.update((state) => ({
+			...state,
+			error: errorMessage
+		}));
+		throw error;
+	}
+}
 
-				// Add a small delay to allow Auth0 internal state to update
-				await new Promise((resolve) => setTimeout(resolve, 500));
+// Send password reset
+export async function sendPasswordReset(email: string) {
+	try {
+		await authService.sendPasswordReset(email);
+	} catch (error) {
+		const errorMessage =
+			error instanceof Error ? error.message : 'Failed to send password reset email';
+		authStore.update((state) => ({
+			...state,
+			error: errorMessage
+		}));
+		throw error;
+	}
+}
 
-				// Get fresh user data
-				const user = (await auth0Client.getUser()) || null;
-				authStore.update((state) => ({
-					...state,
-					user
-				}));
-			} catch (error) {
-				// If refresh fails, force a complete re-initialization
-				console.warn('Token refresh failed, forcing re-initialization:', error);
-				await initAuth0();
-			}
-		}
+// Confirm password reset
+export async function confirmPasswordReset(userId: string, secret: string, newPassword: string) {
+	try {
+		await authService.confirmPasswordReset(userId, secret, newPassword);
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : 'Password reset failed';
+		authStore.update((state) => ({
+			...state,
+			error: errorMessage
+		}));
+		throw error;
+	}
+}
+
+// Update user profile
+export async function updateProfile(username?: string, email?: string) {
+	try {
+		authStore.update((state) => ({ ...state, isLoading: true, error: null }));
+
+		const user = await authService.updateProfile(username, email);
+
+		authStore.update((state) => ({
+			...state,
+			isLoading: false,
+			user,
+			error: null
+		}));
+
+		return user;
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : 'Profile update failed';
+		authStore.update((state) => ({
+			...state,
+			isLoading: false,
+			error: errorMessage
+		}));
+		throw error;
+	}
+}
+
+// Update password
+export async function updatePassword(newPassword: string, oldPassword: string) {
+	try {
+		await authService.updatePassword(newPassword, oldPassword);
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : 'Password update failed';
+		authStore.update((state) => ({
+			...state,
+			error: errorMessage
+		}));
+		throw error;
+	}
+}
+
+// Refresh user data
+export async function refreshUser() {
+	try {
+		const user = await authService.getCurrentUser();
+
+		authStore.update((state) => ({
+			...state,
+			user,
+			isAuthenticated: !!user
+		}));
+
+		return user;
 	} catch (error) {
 		console.error('Error refreshing user data:', error);
 		throw error;
@@ -222,4 +292,19 @@ export async function refreshUser(): Promise<void> {
 // Clear error
 export function clearError() {
 	authStore.update((state) => ({ ...state, error: null }));
+}
+
+// Get user for events (helper function)
+export function getCurrentUserForEvents() {
+	return authService.getCurrentUserForEvents();
+}
+
+// Check if user is authenticated (synchronous)
+export function checkAuthentication() {
+	return authService.isUserAuthenticated();
+}
+
+// Initialize auth when the module loads in browser
+if (browser) {
+	initAuth();
 }

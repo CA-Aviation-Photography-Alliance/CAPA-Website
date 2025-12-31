@@ -1,33 +1,42 @@
 <script lang="ts">
-	import { authStore, login } from '$lib/auth/store';
+	import { authStore } from '$lib/auth/store';
+	import LoginModal from './LoginModal.svelte';
 
 	let {
-		redirectTo = undefined,
 		variant = 'primary',
-		size = 'normal'
+		size = 'normal',
+		text = 'Sign In'
 	}: {
-		redirectTo?: string;
 		variant?: 'primary' | 'secondary' | 'minimal';
 		size?: 'small' | 'normal' | 'large';
+		text?: string;
 	} = $props();
 
-	async function handleLogin() {
-		try {
-			await login(redirectTo);
-		} catch (error) {
-			console.error('Login failed:', error);
-		}
+	let showModal = $state(false);
+
+	function handleLoginClick() {
+		showModal = true;
+	}
+
+	function handleLoginSuccess() {
+		showModal = false;
 	}
 </script>
 
-<button class="login-btn {variant} {size}" onclick={handleLogin} disabled={$authStore.isLoading}>
+<button
+	class="login-btn {variant} {size}"
+	onclick={handleLoginClick}
+	disabled={$authStore.isLoading}
+>
 	{#if $authStore.isLoading}
 		<span class="spinner"></span>
 		Signing in...
 	{:else}
-		Sign In
+		{text}
 	{/if}
 </button>
+
+<LoginModal bind:isOpen={showModal} onSuccess={handleLoginSuccess} />
 
 <style>
 	.login-btn {
@@ -50,7 +59,6 @@
 		opacity: 0.6;
 	}
 
-	/* Variants */
 	.primary {
 		background: linear-gradient(135deg, var(--color-capa-red), var(--color-capa-orange));
 		color: white;
@@ -111,7 +119,6 @@
 		font-size: 1.125rem;
 	}
 
-	/* Spinner animation */
 	.spinner {
 		width: 16px;
 		height: 16px;

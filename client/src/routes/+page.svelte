@@ -1,7 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
-	import { buildApiUrl } from '$lib/config/api';
+	import { fetchEvents } from '$lib/config/api';
 
 	let minimapElement;
 	let minimap;
@@ -12,23 +12,23 @@
 	async function fetchAllEvents() {
 		loading = true;
 		try {
-			const response = await fetch(buildApiUrl('/api/simple-events?limit=100'));
-			if (!response.ok) {
-				throw new Error(`HTTP error! status: ${response.status}`);
+			const result = await fetchEvents({ limit: 100 });
+			if (result.success) {
+				const rawEvents = result.data || [];
+				events = rawEvents.filter(
+					(event) =>
+						event &&
+						event.$id &&
+						event.title &&
+						event.startdate &&
+						event.enddate &&
+						event.location &&
+						event.location.latitude &&
+						event.location.longitude
+				);
+			} else {
+				throw new Error(result.error || 'Failed to fetch events');
 			}
-			const result = await response.json();
-			const rawEvents = result.data || [];
-			events = rawEvents.filter(
-				(event) =>
-					event &&
-					event._id &&
-					event.title &&
-					event.startdate &&
-					event.enddate &&
-					event.location &&
-					event.location.latitude &&
-					event.location.longitude
-			);
 		} catch (error) {
 			console.error('Error fetching events:', error);
 		} finally {

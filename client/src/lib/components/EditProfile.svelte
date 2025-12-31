@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { authStore, refreshUser } from '$lib/auth/store';
+	import { authStore, updateProfile } from '$lib/auth/store';
 	import { onMount } from 'svelte';
 
 	let {
@@ -10,87 +10,74 @@
 		onSave: (updatedUser: Record<string, unknown>) => void;
 	} = $props();
 
-	let nickname = $state('');
-	let name = $state('');
+	let username = $state('');
+	let email = $state('');
 	let isLoading = $state(false);
+	let error = $state('');
+	let hasChanges = $state(false);
 
 	onMount(() => {
 		if ($authStore.user) {
-			nickname = $authStore.user.nickname || '';
-			name = $authStore.user.name || '';
+			username = $authStore.user.username || '';
+			email = $authStore.user.email || '';
 		}
 	});
 
+	// Track changes
+	$effect(() => {
+		if ($authStore.user) {
+			hasChanges =
+				username !== ($authStore.user.username || '') || email !== ($authStore.user.email || '');
+		}
+	});
+
+	function validateForm(): boolean {
+		error = '';
+
+		if (!username.trim()) {
+			error = 'Username is required';
+			return false;
+		}
+
+		if (username.trim().length < 3) {
+			error = 'Username must be at least 3 characters';
+			return false;
+		}
+
+		if (!email.trim()) {
+			error = 'Email is required';
+			return false;
+		}
+
+		if (!/\S+@\S+\.\S+/.test(email)) {
+			error = 'Please enter a valid email address';
+			return false;
+		}
+
+		return true;
+	}
+
 	async function saveProfile() {
+		if (!validateForm()) return;
 		if (!$authStore.user) return;
 
 		isLoading = true;
+		error = '';
 
 		try {
-			// Update user profile via our API
-			const updateResponse = await fetch(`/api/auth/update-profile`, {
-				method: 'PATCH',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					userId: $authStore.user.sub,
-					nickname: nickname.trim(),
-					name: name.trim()
-				})
-			});
+			// Only update fields that have changed
+			const usernameChanged = username !== ($authStore.user.username || '');
+			const emailChanged = email !== ($authStore.user.email || '');
 
-			if (!updateResponse.ok) {
-				const errorData = await updateResponse.json();
-				if (errorData.setup_required) {
-					alert(
-						'Profile editing is not configured yet. Please see AUTH0_SETUP.md for setup instructions.'
-					);
-				} else {
-					alert(`Error: ${errorData.error || 'Failed to update profile'}`);
-				}
-				return;
-			}
+			await updateProfile(
+				usernameChanged ? username.trim() : undefined,
+				emailChanged ? email.trim() : undefined
+			);
 
-			const updatedUser = await updateResponse.json();
-			// console.log('API Response:', updatedUser);
-			// console.log('Current user before update:', $authStore.user);
-
-			// Wait for Auth0 servers to propagate the changes
-			await new Promise((resolve) => setTimeout(resolve, 1000));
-
-			// Refresh user data from Auth0 to get the latest changes
-			try {
-				await refreshUser();
-			} catch (refreshError) {
-				console.warn('Failed to refresh user data, trying full reinitialization:', refreshError);
-				// If refresh fails, try complete reinitialization
-				try {
-					const { initAuth0 } = await import('$lib/auth/store');
-					await initAuth0();
-				} catch (initError) {
-					console.warn('Full reinitialization failed:', initError);
-					// Final fallback to local update
-					authStore.update((state) => ({
-						...state,
-						user: {
-							...state.user,
-							nickname: updatedUser.nickname,
-							name: updatedUser.name,
-							updated_at: updatedUser.updated_at
-						}
-					}));
-				}
-			}
-
-			// console.log('Final user after refresh:', $authStore.user);
-			alert('Profile updated successfully!');
-			onSave(updatedUser);
+			onSave({ username, email });
 			onClose();
 		} catch (err) {
-			alert(
-				`Error: ${err instanceof Error ? err.message : 'An error occurred while updating your profile'}`
-			);
+			error = err instanceof Error ? err.message : 'Failed to update profile';
 			console.error('Profile update error:', err);
 		} finally {
 			isLoading = false;
@@ -108,6 +95,14 @@
 			onClose();
 		}
 	}
+
+	function resetForm() {
+		if ($authStore.user) {
+			username = $authStore.user.username || '';
+			email = $authStore.user.email || '';
+		}
+		error = '';
+	}
 </script>
 
 <svelte:window on:keydown={handleKeydown} />
@@ -116,13 +111,13 @@
 	class="modal-backdrop"
 	onclick={handleBackdropClick}
 	role="dialog"
-	onkeydown={handleKeydown}
-	tabindex="-1"
+	aria-modal="true"
+	aria-labelledby="edit-profile-title"
 >
-	<div class="modal-content" role="dialog" aria-labelledby="edit-profile-title">
+	<div class="modal-content">
 		<div class="modal-header">
 			<h2 id="edit-profile-title">Edit Profile</h2>
-			<button class="close-btn" onclick={onClose} aria-label="Close dialog">
+			<button class="close-button" onclick={onClose} aria-label="Close modal">
 				<svg
 					width="24"
 					height="24"
@@ -131,52 +126,70 @@
 					stroke="currentColor"
 					stroke-width="2"
 				>
-					<line x1="18" y1="6" x2="6" y2="18"></line>
-					<line x1="6" y1="6" x2="18" y2="18"></line>
+					<path d="M18 6L6 18M6 6l12 12"></path>
 				</svg>
 			</button>
 		</div>
 
 		<form
-			class="modal-body"
 			onsubmit={(e) => {
 				e.preventDefault();
 				saveProfile();
 			}}
+			class="profile-form"
 		>
-			<div class="form-group">
-				<label for="name">Display Name</label>
-				<input
-					id="name"
-					type="text"
-					bind:value={name}
-					placeholder="Your display name"
-					disabled={isLoading}
-					maxlength="50"
-				/>
-				<small class="help-text">This is how your name appears to others</small>
-			</div>
+			{#if error}
+				<div class="error-message">
+					{error}
+				</div>
+			{/if}
 
 			<div class="form-group">
-				<label for="nickname">Username</label>
+				<label for="username">Username</label>
 				<input
-					id="nickname"
+					id="username"
 					type="text"
-					bind:value={nickname}
-					placeholder="Your username"
+					bind:value={username}
+					placeholder="Enter your username"
+					required
 					disabled={isLoading}
+					minlength="3"
 					maxlength="30"
 				/>
-				<small class="help-text">Only letters, numbers, underscores, and hyphens allowed</small>
+				<small class="help-text">Your username will be displayed on events you create.</small>
 			</div>
 
-			<div class="modal-actions">
-				<button type="button" class="btn btn-secondary" onclick={onClose} disabled={isLoading}>
+			<div class="form-group">
+				<label for="email">Email Address</label>
+				<input
+					id="email"
+					type="email"
+					bind:value={email}
+					placeholder="Enter your email"
+					required
+					disabled={isLoading}
+				/>
+				<small class="help-text">
+					Your email address for notifications and account recovery.
+				</small>
+			</div>
+
+			<div class="form-actions">
+				<button
+					type="button"
+					class="btn-secondary"
+					onclick={resetForm}
+					disabled={isLoading || !hasChanges}
+				>
+					Reset
+				</button>
+				<button type="button" class="btn-secondary" onclick={onClose} disabled={isLoading}>
 					Cancel
 				</button>
-				<button type="submit" class="btn btn-primary" disabled={isLoading || !nickname.trim()}>
+				<button type="submit" class="btn-primary" disabled={isLoading || !hasChanges}>
 					{#if isLoading}
-						Saving...
+						<span class="spinner"></span>
+						Updating...
 					{:else}
 						Save Changes
 					{/if}
@@ -191,67 +204,71 @@
 		position: fixed;
 		top: 0;
 		left: 0;
-		width: 100vw;
-		height: 100vh;
-		background: rgba(0, 0, 0, 0.8);
+		width: 100%;
+		height: 100%;
+		background: rgba(0, 0, 0, 0.5);
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		z-index: 9999;
-		padding: 1rem;
+		z-index: 1000;
 		backdrop-filter: blur(4px);
+		padding: 1rem;
 	}
 
 	.modal-content {
-		background: linear-gradient(145deg, #1a1a1a, #2d2d2d);
+		background: white;
 		border-radius: 12px;
-		border: 1px solid rgba(255, 255, 255, 0.1);
-		box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-		width: 100%;
+		box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 		max-width: 500px;
+		width: 100%;
 		max-height: 90vh;
-		overflow: auto;
-		color: white;
-		font-family: 'eurostile', sans-serif;
-		position: relative;
-		z-index: 10000;
+		overflow-y: auto;
 	}
 
 	.modal-header {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		padding: 1.5rem 2rem 1rem;
-		border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+		padding: 1.5rem;
+		border-bottom: 1px solid #e5e5e5;
 	}
 
 	.modal-header h2 {
 		margin: 0;
+		font-family: 'eurostile', sans-serif;
 		font-size: 1.5rem;
 		font-weight: bold;
-		color: white;
+		color: var(--color-capa-red);
 	}
 
-	.close-btn {
+	.close-button {
 		background: none;
 		border: none;
-		color: rgba(255, 255, 255, 0.7);
+		font-size: 1.5rem;
 		cursor: pointer;
-		padding: 0.5rem;
-		border-radius: 6px;
+		padding: 0.25rem;
+		color: #666;
+		border-radius: 4px;
 		transition: all 0.2s ease;
-		display: flex;
-		align-items: center;
-		justify-content: center;
 	}
 
-	.close-btn:hover {
-		color: white;
-		background: rgba(255, 255, 255, 0.1);
+	.close-button:hover {
+		background-color: #f5f5f5;
+		color: #333;
 	}
 
-	.modal-body {
-		padding: 2rem;
+	.profile-form {
+		padding: 1.5rem;
+	}
+
+	.error-message {
+		background-color: #f8d7da;
+		color: #721c24;
+		border: 1px solid #f5c6cb;
+		padding: 0.75rem;
+		border-radius: 6px;
+		margin-bottom: 1rem;
+		text-align: center;
 	}
 
 	.form-group {
@@ -261,32 +278,30 @@
 	.form-group label {
 		display: block;
 		margin-bottom: 0.5rem;
-		font-weight: bold;
-		color: white;
+		font-weight: 500;
+		color: #374151;
 		font-size: 0.875rem;
 	}
 
 	.form-group input {
 		width: 100%;
-		padding: 0.75rem 1rem;
-		border: 1px solid rgba(255, 255, 255, 0.2);
+		padding: 0.75rem;
+		border: 2px solid #d1d5db;
 		border-radius: 6px;
-		background: rgba(255, 255, 255, 0.05);
-		color: white;
-		font-family: 'eurostile', sans-serif;
 		font-size: 1rem;
-		transition: all 0.2s ease;
+		transition: border-color 0.2s ease;
+		font-family: inherit;
 		box-sizing: border-box;
 	}
 
 	.form-group input:focus {
 		outline: none;
-		border-color: var(--color-capa-orange);
-		background: rgba(255, 255, 255, 0.1);
-		box-shadow: 0 0 0 2px rgba(255, 165, 0, 0.2);
+		border-color: var(--color-capa-red);
+		box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
 	}
 
 	.form-group input:disabled {
+		background-color: #f8f9fa;
 		opacity: 0.6;
 		cursor: not-allowed;
 	}
@@ -295,75 +310,105 @@
 		display: block;
 		margin-top: 0.25rem;
 		font-size: 0.75rem;
-		color: rgba(255, 255, 255, 0.6);
+		color: #6b7280;
+		line-height: 1.4;
 	}
 
-	.modal-actions {
+	.form-actions {
 		display: flex;
-		gap: 1rem;
+		gap: 0.75rem;
 		justify-content: flex-end;
 		margin-top: 2rem;
+		padding-top: 1rem;
+		border-top: 1px solid #e5e7eb;
+		flex-wrap: wrap;
 	}
 
-	.btn {
+	.btn-primary,
+	.btn-secondary {
 		padding: 0.75rem 1.5rem;
 		border-radius: 6px;
-		font-family: 'eurostile', sans-serif;
-		font-weight: bold;
-		font-size: 0.875rem;
+		font-weight: 500;
 		cursor: pointer;
 		transition: all 0.2s ease;
-		border: 1px solid transparent;
+		border: none;
+		font-size: 0.875rem;
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
 	}
 
-	.btn:disabled {
-		opacity: 0.6;
-		cursor: not-allowed;
-	}
-
-	.btn-secondary {
-		background: rgba(255, 255, 255, 0.1);
-		border-color: rgba(255, 255, 255, 0.2);
-		color: white;
-	}
-
-	.btn-secondary:hover:not(:disabled) {
-		background: rgba(255, 255, 255, 0.2);
-	}
-
 	.btn-primary {
-		background: linear-gradient(135deg, var(--color-capa-red), var(--color-capa-orange));
+		background: var(--color-capa-red);
 		color: white;
-		border: none;
 	}
 
 	.btn-primary:hover:not(:disabled) {
+		background: var(--color-capa-orange);
 		transform: translateY(-1px);
-		box-shadow: 0 4px 12px rgba(255, 165, 0, 0.3);
+		box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 	}
 
-	@media (max-width: 600px) {
-		.modal-content {
-			margin: 0;
-			border-radius: 8px;
+	.btn-primary:disabled {
+		background: #9ca3af;
+		cursor: not-allowed;
+		transform: none;
+	}
+
+	.btn-secondary {
+		background: #f3f4f6;
+		color: #374151;
+		border: 1px solid #d1d5db;
+	}
+
+	.btn-secondary:hover:not(:disabled) {
+		background: #e5e7eb;
+		transform: translateY(-1px);
+	}
+
+	.btn-secondary:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+		transform: none;
+	}
+
+	.spinner {
+		width: 16px;
+		height: 16px;
+		border: 2px solid rgba(255, 255, 255, 0.3);
+		border-top: 2px solid white;
+		border-radius: 50%;
+		animation: spin 1s linear infinite;
+	}
+
+	@keyframes spin {
+		0% {
+			transform: rotate(0deg);
+		}
+		100% {
+			transform: rotate(360deg);
+		}
+	}
+
+	@media (max-width: 640px) {
+		.modal-backdrop {
+			padding: 0.5rem;
 		}
 
 		.modal-header {
-			padding: 1rem 1.5rem 0.75rem;
+			padding: 1rem;
 		}
 
-		.modal-body {
-			padding: 1.5rem;
+		.profile-form {
+			padding: 1rem;
 		}
 
-		.modal-actions {
-			flex-direction: column-reverse;
+		.form-actions {
+			flex-direction: column;
 		}
 
-		.btn {
+		.btn-primary,
+		.btn-secondary {
 			width: 100%;
 			justify-content: center;
 		}

@@ -1,8 +1,27 @@
-<script>
-	let { label, href, target = undefined, rel = undefined, onclick = undefined } = $props();
+<script lang="ts">
+	let {
+		label,
+		href,
+		target = undefined,
+		rel = undefined,
+		onclick = undefined
+	}: {
+		label: string;
+		href: string;
+		target?: string;
+		rel?: string;
+		onclick?: () => void;
+	} = $props();
+
+	function handleClick(event: Event) {
+		if (onclick) {
+			event.preventDefault();
+			onclick();
+		}
+	}
 </script>
 
-<a class="link" {href} {target} {rel} {onclick}>{label}</a>
+<a class="link" {href} {target} {rel} onclick={handleClick}>{label}</a>
 
 <style>
 	.link {

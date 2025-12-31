@@ -1,13 +1,37 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
-	import { authStore, getAccessToken, login } from '$lib/auth/store';
-	import type { User } from '@auth0/auth0-spa-js';
-	import { buildApiUrl } from '$lib/config/api';
+	import { createEventDispatcher, tick } from 'svelte';
+	import { authStore } from '$lib/auth/store';
+	import { apiRequest } from '$lib/config/api';
 
 	export let isOpen = false;
 	export let eventData = null;
 	export let latitude = null;
 	export let longitude = null;
+
+	// Store local copy of event data to prevent null reference issues
+	let localEventData = null;
+	let formInitialized = false;
+
+	// Debug logging - only populate form when modal first opens or when eventData changes to a different event
+	$: if (isOpen && eventData) {
+		// Check if this is a new event (different $id) or first time opening
+		const isDifferentEvent =
+			!localEventData || (localEventData && localEventData.$id !== eventData.$id);
+
+		if (!formInitialized || isDifferentEvent) {
+			console.log('EditEventModal opened with eventData:', eventData);
+			console.log('Modal opened with latitude/longitude:', latitude, longitude);
+
+			// Store local copy when modal opens or event changes
+			localEventData = { ...eventData };
+			console.log('Stored local copy of eventData:', localEventData);
+			populateForm();
+			formInitialized = true;
+		} else {
+			// Just update location if only location changed
+			console.log('Location updated, preserving form data');
+		}
+	}
 
 	const dispatch = createEventDispatcher();
 
@@ -28,16 +52,22 @@
 
 	const eventTypes = ['Planespotting', 'Airshow', 'Other'];
 
+	async function retryWithFreshAuth() {
+		isRetrying = true;
+		showAuthError = false;
+		errors = ['Please refresh the page and try logging in again.'];
+		isRetrying = false;
+	}
+
 	async function populateForm() {
-		if (eventData) {
+		if (localEventData) {
 			formData = {
-				startdate: eventData.startdate ? eventData.startdate.slice(0, 16) : '',
-				enddate: eventData.enddate ? eventData.enddate.slice(0, 16) : '',
-				type: eventData.type || '',
-				title: eventData.title || '',
-				description: eventData.description || ''
+				startdate: localEventData.startdate ? localEventData.startdate.slice(0, 16) : '',
+				enddate: localEventData.enddate ? localEventData.enddate.slice(0, 16) : '',
+				type: localEventData.type || '',
+				title: localEventData.title || '',
+				description: localEventData.description || ''
 			};
-			await tick(); // Ensure DOM updates with the new form data
 		}
 	}
 
@@ -74,7 +104,21 @@
 	async function handleSubmit() {
 		if (!validateForm()) return;
 
-		const user = $authStore.user as User;
+		console.log('handleSubmit called with localEventData:', localEventData);
+
+		if (!localEventData) {
+			console.error('localEventData is null in handleSubmit');
+			errors = ['Event data not available. Please try again.'];
+			return;
+		}
+
+		if (!localEventData.$id) {
+			console.error('localEventData missing $id field:', localEventData);
+			errors = ['Event ID not available. Please try again.'];
+			return;
+		}
+
+		const user = $authStore.user;
 		if (!user) {
 			errors = ['You must be logged in to edit events'];
 			return;
@@ -84,13 +128,6 @@
 		showAuthError = false;
 
 		try {
-			const token = await getAccessToken();
-			if (!token) {
-				showAuthError = true;
-				errors = ['Authentication session expired. Please log in again.'];
-				return;
-			}
-
 			const updatedEvent = {
 				startdate: new Date(formData.startdate).toISOString(),
 				enddate: new Date(formData.enddate).toISOString(),
@@ -106,32 +143,23 @@
 					})
 			};
 
-			const response = await fetch(buildApiUrl(`/api/simple-events/${eventData._id}`), {
-				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `Bearer ${token}`
-				},
-				body: JSON.stringify(updatedEvent)
-			});
+			const result = await apiRequest.events.update(localEventData.$id, updatedEvent);
 
-			const result = await response.json();
-
-			if (!response.ok) {
-				throw new Error(result.error || 'Failed to update event');
-			}
-
-			dispatch('eventUpdated', result.data);
+			dispatch('eventUpdated', result);
 			closeModal();
 		} catch (error) {
 			console.error('Error updating event:', error);
 
 			if (error instanceof Error) {
-				if (error.message.includes('authentication') || error.message.includes('token')) {
+				if (error.message.includes('Authentication required')) {
 					showAuthError = true;
-					errors = ['Authentication error. Please try logging in again.'];
-				} else if (error.message.includes('network') || error.message.includes('fetch')) {
-					errors = ['Network error. Please check your connection and try again.'];
+					errors = ['Please log in to edit events.'];
+				} else if (
+					error.message.includes('permission') ||
+					error.message.includes('edit your own')
+				) {
+					showAuthError = true;
+					errors = ['You can only edit your own events.'];
 				} else {
 					errors = [error.message];
 				}
@@ -144,12 +172,12 @@
 	}
 
 	async function handleDelete() {
-		if (!eventData || !eventData._id) {
+		if (!eventData || !eventData.$id) {
 			errors = ['No event selected for deletion'];
 			return;
 		}
 
-		const user = $authStore.user as User;
+		const user = $authStore.user;
 		if (!user) {
 			errors = ['You must be logged in to delete events'];
 			return;
@@ -159,37 +187,23 @@
 		showAuthError = false;
 
 		try {
-			const token = await getAccessToken();
-			if (!token) {
-				showAuthError = true;
-				errors = ['Authentication session expired. Please log in again.'];
-				return;
-			}
+			await apiRequest.events.delete(localEventData.$id);
 
-			const response = await fetch(buildApiUrl(`/api/simple-events/${eventData._id}`), {
-				method: 'DELETE',
-				headers: {
-					Authorization: `Bearer ${token}`
-				}
-			});
-
-			const result = await response.json();
-
-			if (!response.ok) {
-				throw new Error(result.error || 'Failed to delete event');
-			}
-
-			dispatch('eventDeleted', eventData._id);
+			dispatch('eventDeleted', localEventData.$id);
 			closeModal();
 		} catch (error) {
 			console.error('Error deleting event:', error);
 
 			if (error instanceof Error) {
-				if (error.message.includes('authentication') || error.message.includes('token')) {
+				if (error.message.includes('Authentication required')) {
 					showAuthError = true;
-					errors = ['Authentication error. Please try logging in again.'];
-				} else if (error.message.includes('network') || error.message.includes('fetch')) {
-					errors = ['Network error. Please check your connection and try again.'];
+					errors = ['Please log in to delete events.'];
+				} else if (
+					error.message.includes('permission') ||
+					error.message.includes('delete your own')
+				) {
+					showAuthError = true;
+					errors = ['You can only delete your own events.'];
 				} else {
 					errors = [error.message];
 				}
@@ -213,6 +227,19 @@
 	function closeModal() {
 		isOpen = false;
 		showDeleteConfirm = false;
+		localEventData = null;
+		formInitialized = false;
+		formData = {
+			startdate: '',
+			enddate: '',
+			type: '',
+			title: '',
+			description: ''
+		};
+		errors = [];
+		isSubmitting = false;
+		isDeleting = false;
+		showAuthError = false;
 		dispatch('close');
 	}
 
