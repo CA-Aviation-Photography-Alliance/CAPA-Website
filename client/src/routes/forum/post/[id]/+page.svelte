@@ -308,13 +308,43 @@
 
 					{#if post.attachments && post.attachments.length > 0}
 						<div class="attachments">
-							<h4>Attachments</h4>
-							{#each post.attachments as attachment (attachment.filename)}
-								<div class="attachment">
-									<span class="material-icons">attachment</span>
-									<a href={attachment.url} download>{attachment.filename}</a>
-								</div>
-							{/each}
+							<h4>Images</h4>
+							<div class="images-grid">
+								{#each post.attachments as attachment (attachment.filename)}
+									{#if attachment.type === 'image'}
+										<div class="image-container">
+											<img src={attachment.url} alt={attachment.filename} loading="lazy" />
+											<div class="image-overlay">
+												<div class="image-info">
+													<span class="filename">{attachment.filename}</span>
+													{#if attachment.size}
+														<span class="filesize">{Math.round(attachment.size / 1024)} KB</span>
+													{/if}
+													{#if attachment.width && attachment.height}
+														<span class="dimensions">{attachment.width}×{attachment.height}</span>
+													{/if}
+												</div>
+												<div class="image-actions">
+													<button
+														onclick={() => window.open(attachment.url, '_blank')}
+														class="view-btn"
+														title="View full size"
+													>
+														<span class="material-icons">open_in_new</span>
+													</button>
+												</div>
+											</div>
+										</div>
+									{:else}
+										<div class="attachment">
+											<span class="material-icons">attachment</span>
+											<a href={attachment.url} download={attachment.filename}
+												>{attachment.filename}</a
+											>
+										</div>
+									{/if}
+								{/each}
+							</div>
 						</div>
 					{/if}
 				</div>
@@ -744,6 +774,143 @@
 	.attachments h4 {
 		margin-bottom: 1rem;
 		color: var(--color-capa-orange);
+		font-weight: bold;
+	}
+
+	.images-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+		gap: 1rem;
+		margin-bottom: 1rem;
+	}
+
+	.image-container {
+		position: relative;
+		background: rgba(0, 0, 0, 0.5);
+		border-radius: 8px;
+		overflow: hidden;
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		transition: all 0.3s ease;
+	}
+
+	.image-container:hover {
+		border-color: var(--color-capa-orange);
+		transform: translateY(-2px);
+		box-shadow: 0 8px 25px rgba(188, 48, 17, 0.3);
+	}
+
+	.image-container img {
+		width: 100%;
+		height: auto;
+		max-height: 400px;
+		object-fit: contain;
+		display: block;
+	}
+
+	.image-overlay {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: linear-gradient(
+			to top,
+			rgba(0, 0, 0, 0.8) 0%,
+			rgba(0, 0, 0, 0.3) 50%,
+			rgba(0, 0, 0, 0) 100%
+		);
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
+		padding: 1rem;
+		opacity: 0;
+		transition: opacity 0.3s ease;
+	}
+
+	.image-container:hover .image-overlay {
+		opacity: 1;
+	}
+
+	.image-info {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		margin-top: auto;
+	}
+
+	.image-info span {
+		font-size: 0.9rem;
+		color: var(--color-capa-white);
+		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+	}
+
+	.filename {
+		font-weight: bold;
+		word-break: break-word;
+	}
+
+	.filesize,
+	.dimensions {
+		opacity: 0.8;
+		font-size: 0.8rem;
+	}
+
+	.image-actions {
+		display: flex;
+		gap: 0.5rem;
+		align-self: flex-end;
+	}
+
+	.view-btn {
+		background: rgba(0, 0, 0, 0.7);
+		border: 1px solid rgba(255, 255, 255, 0.2);
+		color: var(--color-capa-white);
+		padding: 0.5rem;
+		border-radius: 4px;
+		cursor: pointer;
+		transition: all 0.3s ease;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		text-decoration: none;
+		width: 40px;
+		height: 40px;
+	}
+
+	.view-btn:hover {
+		background: rgba(0, 0, 0, 0.9);
+		border-color: var(--color-capa-orange);
+		color: var(--color-capa-orange);
+		transform: scale(1.1);
+	}
+
+	.view-btn .material-icons {
+		font-size: 1.2rem;
+	}
+
+	/* Mobile responsiveness for images */
+	@media (max-width: 768px) {
+		.images-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.image-container img {
+			max-height: 300px;
+		}
+
+		.image-overlay {
+			padding: 0.75rem;
+		}
+
+		.image-actions {
+			gap: 0.25rem;
+		}
+
+		.view-btn {
+			width: 36px;
+			height: 36px;
+			padding: 0.4rem;
+		}
 	}
 
 	.attachment {

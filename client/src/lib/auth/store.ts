@@ -33,33 +33,25 @@ export const authError = derived(authStore, ($authStore) => $authStore.error);
 export async function initAuth() {
 	if (!browser) return;
 
-	console.log('Starting auth store initialization');
-
 	try {
 		authStore.update((state) => ({ ...state, isLoading: true, error: null }));
 
 		// Initialize auth service
-		console.log('Calling authService.init()');
+
 		await authService.init();
-		console.log('Auth service initialized successfully');
 
 		// Subscribe to auth service stores
 		authService.user.subscribe((user) => {
-			console.log('User state updated:', user?.email || 'No user');
 			authStore.update((state) => ({ ...state, user }));
 		});
 
 		authService.isAuthenticated.subscribe((authenticated) => {
-			console.log('Auth state updated:', authenticated);
 			authStore.update((state) => ({ ...state, isAuthenticated: authenticated }));
 		});
 
 		authService.isLoading.subscribe((loading) => {
-			console.log('Loading state updated:', loading);
 			authStore.update((state) => ({ ...state, isLoading: loading }));
 		});
-
-		console.log('Auth store initialization complete');
 	} catch (error) {
 		// Handle guest/unauthorized errors as normal (user not logged in)
 		if (error?.code === 401 || error?.type === 'general_unauthorized_scope') {

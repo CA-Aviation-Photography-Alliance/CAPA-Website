@@ -39,6 +39,12 @@ export interface Attachment {
 	filename: string;
 	url: string;
 	type: 'image' | 'document' | 'video' | 'other';
+	// Imgur-specific fields (optional)
+	imgurId?: string;
+	deleteHash?: string;
+	width?: number;
+	height?: number;
+	size?: number;
 }
 
 // Event interface (simplified from the original SimpleEvent model)
@@ -237,7 +243,7 @@ export interface CreateForumPostData {
 	categoryId: string;
 	tags?: string[];
 	isPinned?: boolean;
-	attachments?: File[];
+	attachments?: Attachment[];
 }
 
 export interface UpdateForumPostData extends Partial<CreateForumPostData> {

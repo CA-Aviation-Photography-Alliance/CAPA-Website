@@ -1,15 +1,19 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import { forumService } from '$lib/services/forum/forumService';
 	import { authStore } from '$lib/auth/store';
-	import type { ForumCategory } from '$lib/types';
+	import type { ForumCategory, Attachment } from '$lib/types';
+	import type { UploadedImage } from '$lib/services/proxyCatboxService';
 	import { fade, fly } from 'svelte/transition';
+	import ImageUpload from '$lib/components/forum/ImageUpload.svelte';
 
 	let categories: ForumCategory[] = [];
 	let loading = true;
 	let submitting = false;
 	let error: string | null = null;
+	let imageUploadComponent: ImageUpload;
 
 	// Form data
 	let title = '';
@@ -81,12 +85,34 @@
 		error = null;
 
 		try {
+			// Get uploaded images and convert to attachments
+			const uploadedImages = imageUploadComponent?.getUploadedImages() || [];
+			const attachments: string[] = uploadedImages.map((img) =>
+				JSON.stringify({
+					filename: img.filename,
+					url: img.url,
+					type: 'image' as const,
+					imgurId: img.id,
+					deleteHash: img.deleteHash,
+					width: img.width,
+					height: img.height,
+					size: img.size
+				})
+			);
+
 			const postData = {
 				title: title.trim(),
 				content: content.trim(),
 				categoryId: selectedCategoryId,
-				tags: tags.trim(),
-				isPinned
+				tags: tags.trim()
+					? tags
+							.trim()
+							.split(',')
+							.map((tag) => tag.trim())
+							.filter((tag) => tag.length > 0)
+					: [],
+				isPinned,
+				attachments
 			};
 
 			const newPost = await forumService.createPost(postData);
@@ -290,6 +316,18 @@
 						disabled={submitting}
 					/>
 					<p class="help-text">Use tags to help others find your post</p>
+				</div>
+
+				<!-- Image Upload -->
+				<div class="form-group">
+					<label>Images (optional)</label>
+					<ImageUpload
+						bind:this={imageUploadComponent}
+						multiple={true}
+						maxImages={5}
+						on:error={(e) => (error = e.detail)}
+					/>
+					<p class="help-text">Upload up to 5 images.</p>
 				</div>
 
 				<!-- Options -->

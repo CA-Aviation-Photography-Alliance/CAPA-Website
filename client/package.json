@@ -13,7 +13,8 @@
 		"format": "prettier --write .",
 		"lint": "prettier --check . && eslint .",
 		"deploy": "npm run build && npx gh-pages -d build -t true",
-		"setup-forum": "node scripts/setup-forum.js"
+		"setup-forum": "node scripts/setup-forum.js",
+		"setup-storage": "node scripts/setup-appwrite-storage.js"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^1.2.5",

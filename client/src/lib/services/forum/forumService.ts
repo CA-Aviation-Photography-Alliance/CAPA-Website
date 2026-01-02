@@ -16,9 +16,33 @@ import type {
 	CreateForumCommentData,
 	ForumFilters,
 	Creator,
-	ForumStats
+	ForumStats,
+	Attachment
 } from '$lib/types';
 import { authService } from '../auth';
+
+// Utility function to parse attachment JSON strings back to objects
+function parseAttachments(attachmentStrings?: string[]): Attachment[] {
+	if (!attachmentStrings) return [];
+
+	return attachmentStrings
+		.map((str) => {
+			try {
+				return JSON.parse(str) as Attachment;
+			} catch (error) {
+				console.error('Failed to parse attachment JSON:', str, error);
+				return null;
+			}
+		})
+		.filter((attachment) => attachment !== null) as Attachment[];
+}
+
+// Utility function to serialize attachments to JSON strings
+function serializeAttachments(attachments?: Attachment[]): string[] {
+	if (!attachments) return [];
+
+	return attachments.map((attachment) => JSON.stringify(attachment));
+}
 
 export class ForumService {
 	private databaseId = getForumDatabase();
@@ -110,7 +134,10 @@ export class ForumService {
 				queries
 			);
 
-			const posts = response.documents as ForumPost[];
+			const posts = response.documents.map((doc) => ({
+				...doc,
+				attachments: parseAttachments(doc.attachments)
+			})) as ForumPost[];
 			const total = response.total;
 			const hasMore = page * limit < total;
 
@@ -125,11 +152,16 @@ export class ForumService {
 	 */
 	async getPost(postId: string): Promise<ForumPost | null> {
 		try {
-			const post = (await databases.getDocument(
+			const response = await databases.getDocument(
 				this.databaseId,
 				COLLECTIONS.FORUM_POSTS,
 				postId
-			)) as ForumPost;
+			);
+
+			const post = {
+				...response,
+				attachments: parseAttachments(response.attachments)
+			} as ForumPost;
 
 			// Try to increment view count (ignore errors if unauthorized)
 			this.incrementPostViews(postId).catch(() => {
@@ -165,7 +197,8 @@ export class ForumService {
 				tags: data.tags || [],
 				views: 0,
 				commentCount: 0,
-				lastActivity: new Date().toISOString()
+				lastActivity: new Date().toISOString(),
+				attachments: data.attachments || []
 			};
 
 			const response = await databases.createDocument(
@@ -175,9 +208,17 @@ export class ForumService {
 				postData
 			);
 
-			return response as ForumPost;
+			const post = {
+				...response,
+				attachments: parseAttachments(response.attachments)
+			} as ForumPost;
+
+			return post;
 		} catch (error) {
-			throw new Error('Failed to create post');
+			if (error instanceof Error) {
+				throw new Error(`Failed to create post: ${error.message}`);
+			}
+			throw new Error(`Failed to create post: ${JSON.stringify(error)}`);
 		}
 	}
 
@@ -220,7 +261,12 @@ export class ForumService {
 				updateData
 			);
 
-			return response as ForumPost;
+			const post = {
+				...response,
+				attachments: parseAttachments(response.attachments)
+			} as ForumPost;
+
+			return post;
 		} catch (error) {
 			throw new Error('Failed to update post');
 		}
@@ -380,12 +426,22 @@ export class ForumService {
 				[Query.orderDesc('views'), Query.limit(5)]
 			);
 
+			const recentPosts = recentPostsResponse.documents.map((doc) => ({
+				...doc,
+				attachments: parseAttachments(doc.attachments)
+			})) as ForumPost[];
+
+			const popularPosts = popularPostsResponse.documents.map((doc) => ({
+				...doc,
+				attachments: parseAttachments(doc.attachments)
+			})) as ForumPost[];
+
 			return {
 				totalPosts: recentPostsResponse.total,
 				totalComments: 0, // Would need separate query
 				totalUsers: 0, // Would need separate query
-				recentPosts: recentPostsResponse.documents as ForumPost[],
-				popularPosts: popularPostsResponse.documents as ForumPost[],
+				recentPosts,
+				popularPosts,
 				activeUsers: [] // Would need separate implementation
 			};
 		} catch (error) {

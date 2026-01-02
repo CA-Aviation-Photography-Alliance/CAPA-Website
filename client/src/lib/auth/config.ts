@@ -43,30 +43,24 @@ export const validateAppwriteAuth = (): boolean => {
 	try {
 		// Check if client is properly configured
 		if (!client) {
-			console.error('❌ Appwrite client not configured');
 			return false;
 		}
 
 		// Check if account service is available
 		if (!account) {
-			console.error('❌ Appwrite account service not available');
 			return false;
 		}
 
 		return true;
 	} catch (error) {
-		console.error('❌ Appwrite auth validation failed:', error);
 		return false;
 	}
 };
 
 // Debug logging for development
+// Validate auth configuration silently in development
 if (browser && import.meta.env.DEV) {
-	console.log('Appwrite Auth Configuration:', {
-		passwordRequirements: appwriteAuthConfig.passwordRequirements,
-		emailVerification: appwriteAuthConfig.emailVerification.required,
-		isValid: validateAppwriteAuth()
-	});
+	validateAppwriteAuth();
 }
 
 // Export the configured account service

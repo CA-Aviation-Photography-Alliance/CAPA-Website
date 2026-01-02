@@ -38,6 +38,26 @@ export const databases = new Databases(client);
 export const storage = new Storage(client);
 export const teams = new Teams(client);
 
+// Validate collection IDs
+export function validateForumConfiguration(): {
+	valid: boolean;
+	missing: string[];
+} {
+	const missing: string[] = [];
+
+	if (!COLLECTIONS.FORUM_CATEGORIES) missing.push('VITE_APPWRITE_FORUM_CATEGORIES_COLLECTION_ID');
+	if (!COLLECTIONS.FORUM_POSTS) missing.push('VITE_APPWRITE_FORUM_POSTS_COLLECTION_ID');
+	if (!COLLECTIONS.FORUM_COMMENTS) missing.push('VITE_APPWRITE_FORUM_COMMENTS_COLLECTION_ID');
+	if (!COLLECTIONS.MODERATION_ACTIONS)
+		missing.push('VITE_APPWRITE_MODERATION_ACTIONS_COLLECTION_ID');
+	if (!COLLECTIONS.USER_REPORTS) missing.push('VITE_APPWRITE_USER_REPORTS_COLLECTION_ID');
+
+	return {
+		valid: missing.length === 0,
+		missing
+	};
+}
+
 // Database helper functions
 export const getDatabase = () => APPWRITE_DATABASE_ID;
 export const getForumDatabase = () => APPWRITE_FORUM_DATABASE_ID;

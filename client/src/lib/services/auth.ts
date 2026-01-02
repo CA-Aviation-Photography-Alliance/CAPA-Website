@@ -14,8 +14,6 @@ export class AuthService {
 	async init(): Promise<void> {
 		if (!browser) return;
 
-		console.log('Initializing auth service...');
-
 		// Validate Appwrite configuration first
 		if (!validateAppwriteConfig()) {
 			throw new Error('Appwrite configuration is invalid - check your .env file');
@@ -34,11 +32,7 @@ export class AuthService {
 		try {
 			isLoading.set(true);
 
-			console.log('Attempting to get current session...');
 			const session = await account.get();
-			console.log('Session found:', session);
-			console.log('Session name field:', session.name);
-			console.log('All session fields:', Object.keys(session));
 
 			if (session) {
 				const authUser: AuthUser = {
@@ -52,30 +46,22 @@ export class AuthService {
 
 				this.user.set(authUser);
 				this.isAuthenticated.set(true);
-				console.log('Auth initialized with user:', authUser.email);
 			} else {
 				this.user.set(null);
 				this.isAuthenticated.set(false);
-				console.log('No session found, user not authenticated');
 			}
 		} catch (error) {
 			// Handle guest/unauthorized errors as normal (user not logged in)
 			if (error?.code === 401 || error?.type === 'general_unauthorized_scope') {
-				console.log('No active session (user not logged in)');
+				// No active session (user not logged in) - this is normal
 			} else {
-				console.error('Auth initialization error details:', {
-					message: error?.message,
-					code: error?.code,
-					type: error?.type,
-					fullError: error
-				});
+				// Log actual errors, but silently
 			}
 
 			this.user.set(null);
 			this.isAuthenticated.set(false);
 		} finally {
 			this.isLoading.set(false);
-			console.log('Auth initialization complete');
 		}
 	}
 
