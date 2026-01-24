@@ -76,13 +76,7 @@
 	</button>
 	<!-- Nav links (desktop) -->
 	<div class="nav-links">
-		<NavLink
-			label="Wiki"
-			href="https://wiki.capacommunity.net"
-			target="_blank"
-			rel="noopener noreferrer"
-		/>
-		<NavLink label="Guides" href="/guides" />
+		<NavLink label="Wiki" href="/wiki" />
 		<NavLink label="Forum" href="/forum" />
 		<NavLink label="Map" href="/map" />
 		<!-- <NavLink label="Donate" href="/donate" /> -->
@@ -105,13 +99,7 @@
 <!-- Mobile menu overlay with animation -->
 {#if menuOpen}
 	<div class="mobile-menu" transition:fade={{ duration: 250 }}>
-		<NavLink
-			label="Wiki"
-			href="https://wiki.capacommunity.net"
-			target="_blank"
-			rel="noopener noreferrer"
-		/>
-		<NavLink label="Guides" href="/guides" />
+		<NavLink label="Wiki" href="/wiki" />
 		<NavLink label="Forum" href="/forum" />
 		<NavLink label="Map" href="/map" />
 		<NavLink label="Donate" href="/donate" />

@@ -191,7 +191,6 @@ export class ForumService {
 				categoryId: data.categoryId,
 				authorId: currentUser.userId,
 				authorName: currentUser.username,
-				authorEmail: currentUser.email,
 				isPinned: data.isPinned || false,
 				isLocked: false,
 				tags: data.tags || [],
@@ -318,7 +317,12 @@ export class ForumService {
 				Query.offset((page - 1) * limit)
 			]);
 
-			const comments = response.documents as ForumComment[];
+			// Map author field to authorId for UI compatibility
+			const comments = response.documents.map(doc => ({
+				...doc,
+				authorId: doc.author
+			})) as ForumComment[];
+			
 			const total = response.total;
 			const hasMore = page * limit < total;
 
@@ -342,9 +346,9 @@ export class ForumService {
 				content: data.content,
 				postId: data.postId,
 				parentId: data.parentId || null,
-				authorId: currentUser.userId,
+				author: currentUser.userId,
 				authorName: currentUser.username,
-				authorEmail: currentUser.email,
+				createdAt: new Date().toISOString(),
 				isEdited: false
 			};
 
@@ -358,8 +362,16 @@ export class ForumService {
 			// Update post comment count and last activity
 			await this.updatePostActivity(data.postId, currentUser);
 
-			return response as ForumComment;
+			// Map response to include authorId for UI compatibility
+			return {
+				...response,
+				authorId: response.author || currentUser.userId
+			} as ForumComment;
 		} catch (error) {
+			console.error('Detailed comment creation error:', error);
+			if (error instanceof Error) {
+				throw error;
+			}
 			throw new Error('Failed to create comment');
 		}
 	}

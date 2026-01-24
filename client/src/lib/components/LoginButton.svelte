@@ -60,13 +60,12 @@
 	}
 
 	.primary {
-		background: linear-gradient(135deg, var(--color-capa-red), var(--color-capa-orange));
+		background: var(--color-capa-red);
 		color: white;
 		border: 2px solid transparent;
 	}
 
 	.primary:hover:not(:disabled) {
-		background: linear-gradient(135deg, var(--color-capa-orange), var(--color-capa-yelorange));
 		transform: translateY(-1px);
 		box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 	}

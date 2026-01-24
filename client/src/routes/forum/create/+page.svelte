@@ -20,7 +20,6 @@
 	let content = '';
 	let selectedCategoryId = '';
 	let tags = '';
-	let isPinned = false;
 
 	// Form validation
 	let titleError = '';
@@ -111,7 +110,6 @@
 							.map((tag) => tag.trim())
 							.filter((tag) => tag.length > 0)
 					: [],
-				isPinned,
 				attachments
 			};
 
@@ -331,13 +329,6 @@
 				</div>
 
 				<!-- Options -->
-				<div class="form-group">
-					<label class="checkbox-label">
-						<span class="checkmark"></span>
-						<input type="checkbox" bind:checked={isPinned} disabled={submitting} />
-						Pin this post (moderators only)
-					</label>
-				</div>
 
 				<!-- Actions -->
 				<div class="form-actions">

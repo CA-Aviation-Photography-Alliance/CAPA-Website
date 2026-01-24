@@ -216,9 +216,10 @@
 	}
 
 	.modal-content {
-		background: white;
+		background: rgba(0, 0, 0, 0.9);
 		border-radius: 12px;
 		box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+		border: 1px solid rgba(255, 255, 255, 0.2);
 		max-width: 500px;
 		width: 100%;
 		max-height: 90vh;
@@ -230,7 +231,7 @@
 		justify-content: space-between;
 		align-items: center;
 		padding: 1.5rem;
-		border-bottom: 1px solid #e5e5e5;
+		border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 	}
 
 	.modal-header h2 {
@@ -238,7 +239,7 @@
 		font-family: 'eurostile', sans-serif;
 		font-size: 1.5rem;
 		font-weight: bold;
-		color: var(--color-capa-red);
+		color: var(--color-capa-orange);
 	}
 
 	.close-button {
@@ -247,14 +248,14 @@
 		font-size: 1.5rem;
 		cursor: pointer;
 		padding: 0.25rem;
-		color: #666;
+		color: rgba(255, 255, 255, 0.7);
 		border-radius: 4px;
 		transition: all 0.2s ease;
 	}
 
 	.close-button:hover {
-		background-color: #f5f5f5;
-		color: #333;
+		background-color: rgba(255, 255, 255, 0.1);
+		color: var(--color-capa-white);
 	}
 
 	.profile-form {
@@ -262,9 +263,9 @@
 	}
 
 	.error-message {
-		background-color: #f8d7da;
-		color: #721c24;
-		border: 1px solid #f5c6cb;
+		background-color: rgba(220, 53, 69, 0.2);
+		color: #ff6b6b;
+		border: 1px solid rgba(220, 53, 69, 0.5);
 		padding: 0.75rem;
 		border-radius: 6px;
 		margin-bottom: 1rem;
@@ -279,14 +280,16 @@
 		display: block;
 		margin-bottom: 0.5rem;
 		font-weight: 500;
-		color: #374151;
+		color: var(--color-capa-white);
 		font-size: 0.875rem;
 	}
 
 	.form-group input {
 		width: 100%;
 		padding: 0.75rem;
-		border: 2px solid #d1d5db;
+		border: 2px solid rgba(255, 255, 255, 0.2);
+		background: rgba(255, 255, 255, 0.05);
+		color: var(--color-capa-white);
 		border-radius: 6px;
 		font-size: 1rem;
 		transition: border-color 0.2s ease;
@@ -296,12 +299,12 @@
 
 	.form-group input:focus {
 		outline: none;
-		border-color: var(--color-capa-red);
-		box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+		border-color: var(--color-capa-orange);
+		box-shadow: 0 0 0 3px rgba(223, 70, 20, 0.2);
 	}
 
 	.form-group input:disabled {
-		background-color: #f8f9fa;
+		background-color: rgba(255, 255, 255, 0.05);
 		opacity: 0.6;
 		cursor: not-allowed;
 	}

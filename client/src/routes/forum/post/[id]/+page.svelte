@@ -5,7 +5,6 @@
 	import { forumService } from '$lib/services/forum/forumService';
 	import { authStore } from '$lib/auth/store';
 	import type { ForumPost, ForumComment } from '$lib/types';
-	import { fade, fly } from 'svelte/transition';
 	import ModerationControls from '$lib/components/forum/ModerationControls.svelte';
 
 	let post: ForumPost | null = null;
@@ -102,7 +101,10 @@
 		commentError = '';
 
 		try {
-			if (!postId) return;
+			if (!postId) {
+				throw new Error('Post ID is missing');
+			}
+			console.log('Creating comment with postId:', postId);
 			await forumService.createComment({
 				content: newCommentContent.trim(),
 				postId: postId
@@ -111,6 +113,7 @@
 			newCommentContent = '';
 			await loadComments(true);
 		} catch (err) {
+			console.error('Comment creation error:', err);
 			commentError = err instanceof Error ? err.message : 'Failed to submit comment';
 		} finally {
 			submittingComment = false;
@@ -218,9 +221,9 @@
 			<button onclick={() => goto('/forum')} class="back-btn">Back to Forum</button>
 		</div>
 	{:else if post}
-		<div class="post-content" in:fade={{ duration: 500 }}>
+		<div class="post-content">
 			<!-- Breadcrumb -->
-			<div class="breadcrumb" in:fly={{ y: -20, duration: 500, delay: 200 }}>
+			<div class="breadcrumb">
 				<a href="/forum">Forum</a>
 				<span class="material-icons">chevron_right</span>
 				{#if post.category}
@@ -231,7 +234,7 @@
 			</div>
 
 			<!-- Post Header -->
-			<div class="post-header" in:fly={{ y: 20, duration: 500, delay: 300 }}>
+			<div class="post-header">
 				<div class="post-title-section">
 					<h1 class="post-title">
 						{#if post.isPinned}
@@ -300,7 +303,7 @@
 			</div>
 
 			<!-- Post Body -->
-			<div class="post-body" in:fly={{ y: 20, duration: 500, delay: 400 }}>
+			<div class="post-body">
 				<div class="post-content-area">
 					<div class="content">
 						{@html formatContent(post.content)}
@@ -351,7 +354,7 @@
 			</div>
 
 			<!-- Comments Section -->
-			<div class="comments-section" in:fly={{ y: 20, duration: 500, delay: 500 }}>
+			<div class="comments-section">
 				<div class="comments-header">
 					<h2>
 						{#if post.commentCount === 0}
@@ -379,7 +382,7 @@
 				{#if comments.length > 0}
 					<div class="comments-list">
 						{#each comments as comment, index (comment.$id)}
-							<div class="comment" in:fly={{ y: 20, duration: 300, delay: index * 50 }}>
+							<div class="comment">
 								<div class="comment-content">
 									<div class="comment-header">
 										<div class="comment-meta">
@@ -414,7 +417,7 @@
 
 									<!-- Reply Form -->
 									{#if replyingTo === comment.$id}
-										<div class="reply-form" transition:fly={{ y: 20, duration: 300 }}>
+										<div class="reply-form">
 											<textarea bind:value={replyContent} placeholder="Write your reply..." rows="3"
 											></textarea>
 											<div class="reply-actions">

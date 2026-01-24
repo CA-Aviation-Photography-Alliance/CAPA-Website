@@ -3,7 +3,6 @@
 	import { forumService } from '$lib/services/forum/forumService';
 	import { authStore } from '$lib/auth/store';
 	import type { ForumCategory, ForumStats } from '$lib/types';
-	import { fade, fly } from 'svelte/transition';
 
 	let categories: ForumCategory[] = [];
 	let stats: ForumStats | null = null;
@@ -25,12 +24,6 @@
 			loading = false;
 		}
 	});
-
-	function formatPostCount(count: number): string {
-		if (count === 0) return 'No posts';
-		if (count === 1) return '1 post';
-		return `${count.toLocaleString()} posts`;
-	}
 
 	function formatTimeAgo(dateString: string): string {
 		const date = new Date(dateString);
@@ -57,7 +50,7 @@
 	<div class="spacer"></div>
 
 	<!-- Header -->
-	<div class="forum-header" in:fade={{ duration: 500 }}>
+	<div class="forum-header">
 		<div class="header-content">
 			<h1>Community Forum</h1>
 			<p class="header-subtitle">Connect with fellow aviation photographers and enthusiasts</p>
@@ -65,7 +58,7 @@
 			{#if $authStore.isAuthenticated}
 				<a href="/forum/create" class="create-post-btn">
 					<span class="material-icons">add</span>
-					New Post
+					<span class="btn-label">New Post</span>
 				</a>
 			{:else}
 				<p class="login-prompt">
@@ -91,7 +84,7 @@
 	{:else}
 		<div class="forum-content">
 			<!-- Categories -->
-			<div class="categories-section" in:fly={{ y: 20, duration: 500, delay: 300 }}>
+			<div class="categories-section">
 				<h2>Forum Categories</h2>
 
 				<div class="categories-grid">
@@ -99,7 +92,6 @@
 						<a
 							href="/forum/category/{category.slug}"
 							class="category-card"
-							in:fly={{ y: 20, duration: 500, delay: 400 + index * 100 }}
 						>
 							<div class="category-header">
 								{#if category.icon}
@@ -118,20 +110,6 @@
 							</div>
 
 							<p class="category-description">{category.description}</p>
-
-							<div class="category-stats">
-								<span class="post-count">{formatPostCount(category.postCount || 0)}</span>
-
-								{#if category.lastPost}
-									<div class="last-post">
-										<span class="last-post-title">{category.lastPost.title}</span>
-										<div class="last-post-meta">
-											<span class="author">by {category.lastPost.authorName}</span>
-											<span class="time">{formatTimeAgo(category.lastPost.createdAt)}</span>
-										</div>
-									</div>
-								{/if}
-							</div>
 						</a>
 					{/each}
 				</div>
@@ -139,7 +117,7 @@
 
 			<!-- Recent Activity -->
 			{#if stats?.recentPosts?.length > 0}
-				<div class="recent-section" in:fly={{ y: 20, duration: 500, delay: 600 }}>
+				<div class="recent-section">
 					<h2>Recent Posts</h2>
 
 					<div class="recent-posts">
@@ -147,7 +125,6 @@
 							<a
 								href="/forum/post/{post.$id}"
 								class="recent-post"
-								in:fly={{ y: 20, duration: 500, delay: 700 + index * 100 }}
 							>
 								<div class="post-info">
 									<h4>{post.title}</h4>
@@ -173,11 +150,25 @@
 </div>
 
 <style>
+	:global(.material-icons) {
+		vertical-align: middle;
+		line-height: 1;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+	}
+
 	.forum-container {
 		min-height: 100vh;
 		background: var(--color-capa-black);
 		color: var(--color-capa-white);
 		font-family: 'eurostile', sans-serif;
+		line-height: 1.6;
+	}
+
+	.forum-container * {
+		box-sizing: border-box;
+		text-rendering: optimizeLegibility;
 	}
 
 	.spacer {
@@ -185,12 +176,7 @@
 	}
 
 	.forum-header {
-		background: linear-gradient(
-			135deg,
-			rgba(188, 48, 17, 0.2),
-			rgba(223, 70, 20, 0.2),
-			rgba(251, 147, 31, 0.2)
-		);
+		background-color: rgba(188, 48, 17, 0.2);
 		padding: 4rem 2rem;
 		border-bottom: 2px solid rgba(188, 48, 17, 0.3);
 	}
@@ -206,6 +192,7 @@
 		font-weight: bold;
 		margin: 0 0 1rem 0;
 		color: var(--color-capa-white);
+		line-height: 1.2;
 	}
 
 	.header-subtitle {
@@ -217,15 +204,33 @@
 	.create-post-btn {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.5rem;
+		justify-content: center;
+		line-height: 1;
+		gap: 0.6rem;
 		background: linear-gradient(45deg, var(--color-capa-red), var(--color-capa-orange));
 		color: var(--color-capa-white);
-		padding: 1rem 2rem;
-		border-radius: 30px;
+		padding: 0.6rem 1.2rem;
+		border-radius: 24px;
 		text-decoration: none;
 		font-weight: bold;
 		transition: all 0.3s ease;
+		font-size: 0.95rem;
 		box-shadow: 0 4px 15px rgba(188, 48, 17, 0.3);
+	}
+
+	.create-post-btn .btn-label {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		line-height: 1;
+		transform: translateY(2px);
+	}
+
+	.create-post-btn .material-icons {
+		line-height: 1;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
 	}
 
 	.create-post-btn:hover {
@@ -316,7 +321,7 @@
 	.category-card {
 		background: rgba(0, 0, 0, 0.7);
 		border-radius: 15px;
-		padding: 2rem;
+		padding: 10px;
 		text-decoration: none;
 		color: var(--color-capa-white);
 		border: 1px solid rgba(188, 48, 17, 0.2);
@@ -336,28 +341,41 @@
 		align-items: center;
 		gap: 1rem;
 		margin-bottom: 1rem;
+		line-height: 1.4;
 	}
 
 	.category-icon {
 		font-size: 2rem;
+		line-height: 1;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
 	}
 
 	.category-color-dot {
 		width: 20px;
 		height: 20px;
 		border-radius: 50%;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
 	}
 
 	.category-header h3 {
 		font-size: 1.5rem;
 		margin: 0;
 		color: var(--color-capa-white);
+		line-height: 1;
+		display: inline-flex;
+		align-items: center;
+		transform: translateY(2px);
 	}
 
 	.category-description {
 		margin: 1rem 0;
 		opacity: 0.9;
-		line-height: 1.5;
+		line-height: 1.6;
+		text-align: left;
 	}
 
 	.category-stats {
@@ -367,11 +385,6 @@
 		margin-top: 1.5rem;
 		padding-top: 1rem;
 		border-top: 1px solid rgba(255, 255, 255, 0.1);
-	}
-
-	.post-count {
-		color: var(--color-capa-orange);
-		font-weight: bold;
 	}
 
 	.last-post {
@@ -420,10 +433,15 @@
 		margin: 0 0 0.5rem 0;
 		font-size: 1.1rem;
 		color: var(--color-capa-white);
+		line-height: 1;
+		display: inline-flex;
+		align-items: center;
+		transform: translateY(1px);
 	}
 
 	.post-meta {
 		display: flex;
+		align-items: center;
 		gap: 1rem;
 		color: rgba(255, 255, 255, 0.6);
 		font-size: 0.9rem;
@@ -432,6 +450,9 @@
 	.pinned-icon {
 		color: var(--color-capa-yellow);
 		transform: rotate(45deg);
+		line-height: 1;
+		display: inline-flex;
+		align-items: center;
 	}
 
 	@media (max-width: 768px) {

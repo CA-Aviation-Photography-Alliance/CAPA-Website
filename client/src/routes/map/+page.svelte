@@ -5,7 +5,8 @@
 	import CreateEventModal from '$lib/components/events/CreateEventModal.svelte';
 	import EditEventModal from '$lib/components/events/EditEventModal.svelte';
 	import EventCard from '$lib/components/events/EventCard.svelte';
-	import { fetchEvents, fetchAirports } from '$lib/config/api';
+	import { fetchEvents } from '$lib/config/api';
+	import { airportsService } from '$lib/services/airports';
 
 	let mapElement: HTMLDivElement;
 	let searchTerm = '';
@@ -48,14 +49,14 @@
 
 	// Filter airports based on the search term
 	$: filteredAirports = airports.filter((airport) => {
-		if (airport.state !== 'California') return false;
+		if (airport.state && airport.state !== 'California') return false;
 
 		if (!searchTerm) return true;
 
 		const searchLower = searchTerm.toLowerCase();
 		return (
 			airport.name.toLowerCase().includes(searchLower) ||
-			airport.icao.toLowerCase().includes(searchLower) ||
+			(airport.code && airport.code.toLowerCase().includes(searchLower)) ||
 			airport.city.toLowerCase().includes(searchLower)
 		);
 	});
@@ -83,12 +84,8 @@
 	async function fetchAirportsData() {
 		loading = true;
 		try {
-			const result = await fetchAirports();
-			if (result.success) {
-				airports = result.data || [];
-			} else {
-				throw new Error(result.error || 'Failed to fetch airports');
-			}
+			const result = await airportsService.getAll({ limit: 1000 });
+			airports = result.airports || [];
 		} catch (error) {
 			console.error('Error fetching airports:', error);
 		} finally {
@@ -144,15 +141,15 @@
 		markers = [];
 
 		airportList.forEach((airport) => {
-			if (airport.lat && airport.lon) {
-				const marker = window.L.marker([parseFloat(airport.lat), parseFloat(airport.lon)], {
+			if (airport.coordinates && airport.coordinates.latitude && airport.coordinates.longitude) {
+				const marker = window.L.marker([airport.coordinates.latitude, airport.coordinates.longitude], {
 					icon: customIcon
 				}).addTo(map);
 				marker.bindPopup(`
 					<div class="popup-content">
 						<h3>${airport.name}</h3>
-						<p>${airport.city}, ${airport.state}</p>
-						<a href="https://wiki.capacommunity.net/airports/${airport.icao}" class="popup-link view-btn" target="_blank" rel="noopener noreferrer">View details</a>
+						<p>${airport.city}, ${airport.state || airport.country}</p>
+						<p><strong>${airport.code}</strong></p>
 					</div>
 				`);
 				markers.push(marker);

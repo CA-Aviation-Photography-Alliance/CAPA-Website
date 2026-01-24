@@ -14,7 +14,16 @@
 		"lint": "prettier --check . && eslint .",
 		"deploy": "npm run build && npx gh-pages -d build -t true",
 		"setup-forum": "node scripts/setup-forum.js",
-		"setup-storage": "node scripts/setup-appwrite-storage.js"
+		"setup-storage": "node scripts/setup-appwrite-storage.js",
+		"setup-wiki": "node scripts/setup-wiki.js",
+		"setup-github-wiki": "node scripts/setup-github-wiki.js",
+		"setup-appwrite-storage-wiki": "node scripts/setup-appwrite-storage-wiki.js",
+		"test-wiki-backends": "node scripts/test-wiki-backends.js",
+		"set-admin-role": "node scripts/admin/set-admin-role.js",
+		"manage-teams": "node scripts/admin/manage-teams.js",
+		"verify-admin-setup": "node scripts/admin/verify-admin-setup.js",
+		"debug-wiki-creation": "node scripts/debug-wiki-creation.js",
+		"fix-wiki-schema": "node scripts/fix-wiki-schema.js"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^1.2.5",
@@ -42,7 +51,8 @@
 	},
 	"dependencies": {
 		"appwrite": "^21.5.0",
+		"dotenv": "^16.6.1",
 		"leaflet": "^1.9.4",
-		"dotenv": "^16.3.1"
+		"node-appwrite": "^21.1.0"
 	}
 }

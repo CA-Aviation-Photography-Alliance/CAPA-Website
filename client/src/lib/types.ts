@@ -154,7 +154,7 @@ export interface User {
 export interface AuthUser extends User {
 	emailVerification?: boolean;
 	phoneVerification?: boolean;
-	prefs?: Record<string, any>;
+	prefs?: Record<string, unknown>;
 	roles?: UserRole[];
 }
 
@@ -203,7 +203,6 @@ export interface ForumPost {
 	category?: ForumCategory;
 	authorId: string;
 	authorName: string;
-	authorEmail: string;
 	isPinned: boolean;
 	isLocked: boolean;
 	tags?: string[];
@@ -222,7 +221,6 @@ export interface ForumComment {
 	parentId?: string;
 	authorId: string;
 	authorName: string;
-	authorEmail: string;
 	isEdited: boolean;
 	editedAt?: string;
 	attachments?: Attachment[];
@@ -268,7 +266,6 @@ export interface ForumFilters {
 	sortBy?: 'createdAt' | 'lastActivity' | 'views' | 'comments';
 	sortOrder?: 'asc' | 'desc';
 	timeRange?: 'day' | 'week' | 'month' | 'year' | 'all';
-	isPinned?: boolean;
 }
 
 // Moderation interfaces
@@ -281,7 +278,7 @@ export interface ModerationAction {
 	moderatorId: string;
 	moderatorName: string;
 	reason?: string;
-	details?: Record<string, any>;
+	details?: Record<string, unknown>;
 }
 
 export interface UserReport {
@@ -297,4 +294,126 @@ export interface UserReport {
 	reviewedBy?: string;
 	reviewedAt?: string;
 	resolution?: string;
+}
+
+// Wiki interfaces
+export interface WikiCategory {
+	$id?: string;
+	$createdAt?: string;
+	$updatedAt?: string;
+	name: string;
+	description: string;
+	slug: string;
+	color?: string;
+	icon?: string;
+	order: number;
+	isActive: boolean;
+	pageCount?: number;
+	parentId?: string; // For nested categories
+}
+
+export interface WikiPage {
+	$id?: string;
+	$createdAt?: string;
+	$updatedAt?: string;
+	title: string;
+	slug: string;
+	content: string;
+	excerpt?: string;
+	categoryId?: string;
+	category?: WikiCategory;
+	authorId: string;
+	authorName: string;
+	lastEditedBy?: string;
+	lastEditedByName?: string;
+	version: number;
+	isPublished: boolean;
+	isLocked: boolean;
+	tags?: string[];
+	attachments?: Attachment[];
+	thumbnailUrl?: string;
+	metadata?: Record<string, unknown>;
+	template?: string; // For page templates
+}
+
+export interface WikiPageVersion {
+	$id?: string;
+	$createdAt?: string;
+	pageId: string;
+	version: number;
+	title: string;
+	content: string;
+	authorId: string;
+	authorName: string;
+	changeDescription?: string;
+	contentDiff?: string;
+}
+
+export interface WikiTemplate {
+	$id?: string;
+	$createdAt?: string;
+	$updatedAt?: string;
+	name: string;
+	description: string;
+	content: string;
+	fields?: WikiTemplateField[];
+	categoryId?: string;
+	authorId: string;
+	isPublic: boolean;
+}
+
+export interface WikiTemplateField {
+	name: string;
+	type: 'text' | 'textarea' | 'number' | 'date' | 'select' | 'checkbox';
+	label: string;
+	required: boolean;
+	placeholder?: string;
+	options?: string[]; // For select fields
+	defaultValue?: string | number | boolean;
+}
+
+export interface WikiStats {
+	totalPages: number;
+	totalCategories: number;
+	recentPages: WikiPage[];
+	topContributors: Creator[];
+}
+
+export interface CreateWikiPageData {
+	title: string;
+	content: string;
+	categoryId?: string;
+	tags?: string[];
+	isPublished?: boolean;
+	templateId?: string;
+	attachments?: Attachment[];
+	thumbnailUrl?: string;
+	metadata?: Record<string, unknown>;
+}
+
+export interface UpdateWikiPageData extends Partial<CreateWikiPageData> {
+	$id: string;
+	changeDescription?: string;
+	isLocked?: boolean;
+	thumbnailUrl?: string;
+	metadata?: Record<string, unknown>;
+}
+
+export interface WikiFilters {
+	page?: number;
+	limit?: number;
+	categoryId?: string;
+	authorId?: string;
+	search?: string;
+	tags?: string[];
+	sortBy?: 'createdAt' | 'updatedAt' | 'title' | 'version';
+	sortOrder?: 'asc' | 'desc';
+	isPublished?: boolean;
+}
+
+export interface WikiSearchResult {
+	page: WikiPage;
+	relevanceScore: number;
+	matchedContent?: string;
+	matchedTags?: string[];
 }

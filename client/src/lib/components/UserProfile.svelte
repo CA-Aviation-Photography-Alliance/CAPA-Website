@@ -233,7 +233,6 @@
 
 	.edit-btn:hover {
 		transform: translateY(-1px);
-		box-shadow: 0 4px 12px rgba(255, 165, 0, 0.3);
 	}
 
 	.logout-btn {

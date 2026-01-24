@@ -2,12 +2,16 @@
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import { fetchEvents } from '$lib/config/api';
+	import { wikiService } from '$lib/services/wiki/wikiService';
+	import { forumService } from '$lib/services/forum/forumService';
 
 	let minimapElement;
 	let minimap;
 	let events = [];
 	let loading = false;
 	let userLocation = null;
+	let featuredWiki = null;
+	let featuredPost = null;
 
 	async function fetchAllEvents() {
 		loading = true;
@@ -15,6 +19,7 @@
 			const result = await fetchEvents({ limit: 100 });
 			if (result.success) {
 				const rawEvents = result.data || [];
+				const now = new Date();
 				events = rawEvents.filter(
 					(event) =>
 						event &&
@@ -24,7 +29,8 @@
 						event.enddate &&
 						event.location &&
 						event.location.latitude &&
-						event.location.longitude
+						event.location.longitude &&
+						new Date(event.enddate) >= now // Only show current and future events
 				);
 			} else {
 				throw new Error(result.error || 'Failed to fetch events');
@@ -105,9 +111,9 @@
 			// Add event markers
 			const eventIcon = window.L.icon({
 				iconUrl: '/pinRed.png',
-				iconSize: [25, 41],
-				iconAnchor: [12, 41],
-				popupAnchor: [1, -34]
+				iconSize: [25, 33],
+				iconAnchor: [12.5, 33],
+				popupAnchor: [0, -33]
 			});
 
 			events.forEach((event) => {
@@ -133,6 +139,27 @@
 
 	onMount(async () => {
 		if (!browser) return;
+
+		// Fetch featured wiki article
+		try {
+			const wikiRes = await wikiService.listPages({ limit: 1, sortBy: 'updatedAt', sortOrder: 'desc' });
+			if (wikiRes.success && wikiRes.data && wikiRes.data.length > 0) {
+				featuredWiki = wikiRes.data[0];
+			}
+		} catch (error) {
+			console.error('Error fetching featured wiki:', error);
+		}
+
+		// Fetch featured forum post
+		try {
+			const postsRes = await forumService.getPosts({ limit: 1, sortBy: 'lastActivity', sortOrder: 'desc' });
+			if (postsRes.posts && postsRes.posts.length > 0) {
+				featuredPost = postsRes.posts[0];
+			}
+		} catch (error) {
+			console.error('Error fetching featured post:', error);
+			// Silently fail - featured post is optional
+		}
 
 		// Wait for Leaflet to load
 		let attempts = 0;
@@ -180,25 +207,58 @@
 	<div class="content-section">
 		<div class="featured-wiki">
 			<div class="wiki-box">
-				<a
-					class="wiki-link"
-					href="https://wiki.capacommunity.net/guides/airport-photography"
-					target="_blank"
-					rel="noopener noreferrer"
-				>
-					Read More
-				</a>
-				<div class="wiki-content">
-					<div class="wiki-header">
-						<div class="wiki-text-content">
-							<h2>Featured Wiki Article</h2>
-							<p class="wiki-subtitle">Airport Photography Guide</p>
+				{#if featuredWiki}
+					<div class="wiki-content">
+						<div class="wiki-header">
+							<div class="wiki-text-content">
+								<h2>Featured Wiki Article</h2>
+								<a href="/wiki/{featuredWiki.slug}" class="wiki-subtitle-link">
+									<p class="wiki-subtitle">{featuredWiki.title}</p>
+								</a>
+							</div>
+						</div>
+						{#if featuredWiki.thumbnailUrl}
+							<div class="wiki-image">
+								<img src={featuredWiki.thumbnailUrl} alt={featuredWiki.title} />
+							</div>
+						{/if}
+					</div>
+				{:else}
+					<div class="wiki-content">
+						<div class="wiki-header">
+							<div class="wiki-text-content">
+								<h2>Featured Wiki Article</h2>
+								<p class="wiki-subtitle">Loading...</p>
+							</div>
 						</div>
 					</div>
-					<div class="wiki-image">
-						<img src="homescreen-dabyt.jpg" alt="Featured article image" />
+				{/if}
+			</div>
+		</div>
+		<div class="featured-forum">
+			<div class="forum-box">
+				{#if featuredPost}
+					<div class="forum-content">
+						<div class="forum-header">
+							<div class="forum-text-content">
+								<h2>Featured Forum Post</h2>
+								<a href="/forum/post/{featuredPost.$id}" class="forum-subtitle-link">
+									<p class="forum-subtitle">{featuredPost.title}</p>
+								</a>
+								<p class="forum-meta">by {featuredPost.authorName}</p>
+							</div>
+						</div>
 					</div>
-				</div>
+				{:else}
+					<div class="forum-content">
+						<div class="forum-header">
+							<div class="forum-text-content">
+								<h2>Featured Forum Post</h2>
+								<p class="forum-subtitle">Loading...</p>
+							</div>
+						</div>
+					</div>
+				{/if}
 			</div>
 		</div>
 		<div class="nearby-events">
@@ -229,19 +289,16 @@
 		padding: 20px;
 		box-sizing: border-box;
 	}
-	.featured-wiki {
-		flex: 1;
-		display: flex;
-		justify-content: center;
-		align-items: flex-start;
-	}
+	.featured-wiki,
+	.featured-forum,
 	.nearby-events {
 		flex: 1;
 		display: flex;
 		justify-content: center;
 		align-items: flex-start;
 	}
-	.wiki-box {
+	.wiki-box,
+	.forum-box {
 		background: rgba(0, 0, 0, 0.7);
 		border-radius: 15px;
 		width: 100%;
@@ -253,58 +310,57 @@
 		position: relative;
 		z-index: 100;
 	}
-	.wiki-content {
+	.wiki-content,
+	.forum-content {
 		display: flex;
 		flex-direction: column;
 		height: 100%;
 		gap: 20px;
 	}
-	.wiki-header {
+	.wiki-header,
+	.forum-header {
 		display: flex;
 		justify-content: flex-start;
 		align-items: flex-start;
 		gap: 20px;
 		margin-bottom: 20px;
 	}
-	.wiki-text-content {
+	.wiki-text-content,
+	.forum-text-content {
 		display: flex;
 		flex-direction: column;
 		gap: 10px;
 	}
-	.wiki-content h2 {
+	.wiki-content h2,
+	.forum-content h2 {
 		color: var(--color-capa-white);
 		font-family: 'eurostile', sans-serif;
 		font-size: 2em;
 		margin: 0;
 		text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 	}
-	.wiki-subtitle {
+	.wiki-subtitle,
+	.forum-subtitle {
 		color: var(--color-capa-orange);
 		font-family: 'eurostile', sans-serif;
 		font-size: 1.1em;
 		margin: 0;
 		font-style: italic;
 	}
-	.wiki-link {
-		position: absolute;
-		top: 20px;
-		right: 20px;
-		background-color: var(--color-capa-orange);
-		color: var(--color-capa-white);
-		padding: 12px 24px;
-		border-radius: 25px;
+	.wiki-subtitle-link,
+	.forum-subtitle-link {
 		text-decoration: none;
-		font-family: 'eurostile', sans-serif;
-		font-size: 1.1em;
-		transition: background-color 0.3s ease;
-		text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
-		white-space: nowrap;
-		z-index: 101;
-		cursor: pointer;
-		display: inline-block;
+		transition: opacity 0.3s ease;
 	}
-	.wiki-link:hover {
-		background-color: var(--color-capa-red);
+	.wiki-subtitle-link:hover,
+	.forum-subtitle-link:hover {
+		opacity: 0.8;
+	}
+	.forum-meta {
+		color: rgba(255, 255, 255, 0.7);
+		font-family: 'eurostile', sans-serif;
+		font-size: 0.9em;
+		margin: 0;
 	}
 	.wiki-image {
 		flex: 1;
@@ -455,25 +511,22 @@
 			gap: 10px;
 			top: 420px;
 		}
-		.wiki-box {
+		.wiki-box,
+		.forum-box {
 			padding: 20px;
 		}
-		.wiki-header {
+		.wiki-header,
+		.forum-header {
 			flex-direction: column;
 			align-items: flex-start;
 			margin-bottom: 10px;
 		}
-		.wiki-link {
-			position: relative;
-			top: 0;
-			right: 0;
-			margin-top: 10px;
-			margin-bottom: 10px;
-		}
-		.wiki-content h2 {
+		.wiki-content h2,
+		.forum-content h2 {
 			font-size: 1.5em;
 		}
-		.wiki-subtitle {
+		.wiki-subtitle,
+		.forum-subtitle {
 			font-size: 0.9em;
 		}
 		.wiki-image {
