@@ -1,7 +1,8 @@
-import { writable, derived } from 'svelte/store';
+import { writable, derived, get } from 'svelte/store';
 import { browser } from '$app/environment';
 import { authService } from '$lib/services/auth';
-import type { AuthUser } from '$lib/types';
+import type { AuthUser, UserProfileLink } from '$lib/types';
+import { userProfileService } from '$lib/services/userProfileService';
 
 // Auth state interface
 interface AuthState {
@@ -27,6 +28,15 @@ export const isLoading = derived(authStore, ($authStore) => $authStore.isLoading
 export const isAuthenticated = derived(authStore, ($authStore) => $authStore.isAuthenticated);
 export const currentUser = derived(authStore, ($authStore) => $authStore.user);
 export const authError = derived(authStore, ($authStore) => $authStore.error);
+
+async function syncUserProfileDocument(user: AuthUser | null, extras?: { bio?: string; links?: UserProfileLink[] }) {
+	if (!user) return;
+	try {
+		await userProfileService.syncProfile(user, extras);
+	} catch (error) {
+		console.warn('Failed to sync user profile document', error);
+	}
+}
 
 // Initialize Appwrite Auth
 // Initialize auth when the module loads in browser
@@ -96,6 +106,8 @@ export async function login(email: string, password: string) {
 			error: null
 		}));
 
+		await syncUserProfileDocument(user);
+
 		return user;
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : 'Login failed';
@@ -122,6 +134,8 @@ export async function register(email: string, password: string, username: string
 			user,
 			error: null
 		}));
+
+		await syncUserProfileDocument(user);
 
 		return user;
 	} catch (error) {
@@ -237,9 +251,71 @@ export async function updateProfile(username?: string, email?: string) {
 			error: null
 		}));
 
+		await syncUserProfileDocument(user);
+
 		return user;
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : 'Profile update failed';
+		authStore.update((state) => ({
+			...state,
+			isLoading: false,
+			error: errorMessage
+		}));
+		throw error;
+	}
+}
+
+export async function updateProfilePicture(file: File) {
+	try {
+		authStore.update((state) => ({ ...state, isLoading: true, error: null }));
+
+		const user = await authService.updateProfilePicture(file);
+
+		authStore.update((state) => ({
+			...state,
+			isLoading: false,
+			user,
+			isAuthenticated: true
+		}));
+
+		const userId = user?.userId || user?.$id || null;
+		userProfileService.setAvatar(userId, user?.picture || null);
+
+		await syncUserProfileDocument(user);
+
+		return user;
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : 'Profile picture update failed';
+		authStore.update((state) => ({
+			...state,
+			isLoading: false,
+			error: errorMessage
+		}));
+		throw error;
+	}
+}
+
+export async function removeProfilePicture() {
+	try {
+		authStore.update((state) => ({ ...state, isLoading: true, error: null }));
+
+		const user = await authService.removeProfilePicture();
+
+		authStore.update((state) => ({
+			...state,
+			isLoading: false,
+			user,
+			isAuthenticated: true
+		}));
+
+		const userId = user?.userId || user?.$id || null;
+		userProfileService.setAvatar(userId, user?.picture || null);
+
+		await syncUserProfileDocument(user);
+
+		return user;
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : 'Failed to remove profile picture';
 		authStore.update((state) => ({
 			...state,
 			isLoading: false,
@@ -284,6 +360,15 @@ export async function refreshUser() {
 // Clear error
 export function clearError() {
 	authStore.update((state) => ({ ...state, error: null }));
+}
+
+export async function updateProfileExtras(details: { bio?: string; links?: UserProfileLink[] }) {
+	const state = get(authStore);
+	if (!state.user) {
+		throw new Error('You must be logged in to update your profile.');
+	}
+
+	await syncUserProfileDocument(state.user, details);
 }
 
 // Get user for events (helper function)

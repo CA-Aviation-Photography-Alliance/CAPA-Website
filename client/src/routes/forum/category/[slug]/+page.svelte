@@ -274,7 +274,12 @@
 
 									<div class="post-meta">
 										<div class="author-info">
-											<span class="author">by {post.authorName}</span>
+											<span class="author">
+												by
+												<a href={`/profile/${post.authorId}`} class="profile-link"
+													>{post.authorName}</a
+												>
+											</span>
 											<span class="created-date">{formatTimeAgo(post.$createdAt || '')}</span>
 										</div>
 
@@ -728,6 +733,17 @@
 	.author {
 		color: var(--color-capa-orange);
 		font-weight: bold;
+	}
+
+	.author .profile-link {
+		color: var(--color-capa-red);
+		text-decoration: none;
+		font-weight: 600;
+	}
+
+	.author .profile-link:hover {
+		text-decoration: underline;
+		color: var(--color-capa-orange);
 	}
 
 	.last-activity {

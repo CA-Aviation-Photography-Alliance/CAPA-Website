@@ -65,7 +65,7 @@
 	<div class="comment-content">
 		<div class="comment-header">
 			<div class="author-info">
-				<span class="comment-author">{comment.authorName}</span>
+				<a href={`/profile/${comment.authorId}`} class="comment-author">{comment.authorName}</a>
 				<span class="comment-date">{formatTimeAgo(comment.$createdAt || '')}</span>
 				{#if comment.isEdited}
 					<span class="edited-indicator">(edited)</span>
@@ -171,6 +171,11 @@
 		font-weight: bold;
 		color: var(--color-capa-orange);
 		font-size: 1rem;
+		text-decoration: none;
+	}
+
+	.comment-author:hover {
+		text-decoration: underline;
 	}
 
 	.comment-date {

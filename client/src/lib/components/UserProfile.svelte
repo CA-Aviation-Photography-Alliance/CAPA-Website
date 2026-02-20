@@ -49,7 +49,7 @@
 			<div class="profile-card">
 				<div class="avatar-section">
 					{#if $authStore.user.picture}
-						<img src={$authStore.user.picture} alt="Profile" class="avatar-image" />
+						<img src={$authStore.user.picture} alt="Profile" class="avatar-image" loading="lazy" />
 					{:else}
 						<div class="avatar-placeholder">
 							{getInitials($authStore.user.username || $authStore.user.email)}
@@ -72,7 +72,17 @@
 				</div>
 
 				<div class="profile-actions">
-					<button class="edit-btn" onclick={openEditModal}> Edit Profile </button>
+					<div class="profile-action-buttons">
+						<a
+							class="edit-btn"
+							href={`/profile/${$authStore.user.userId || $authStore.user.$id}`}
+							target="_blank"
+							rel="noopener noreferrer"
+						>
+							View Public Profile
+						</a>
+						<button class="edit-btn" onclick={openEditModal}> Edit Profile </button>
+					</div>
 					<button class="logout-btn" onclick={handleLogout}> Sign Out </button>
 				</div>
 			</div>
@@ -160,10 +170,11 @@
 
 	.avatar-section {
 		display: flex;
+		flex-direction: column;
+		align-items: center;
 		justify-content: center;
 		margin-bottom: 1rem;
 	}
-
 	.avatar-image {
 		width: 80px;
 		height: 80px;
@@ -185,6 +196,7 @@
 		color: white;
 		border: 3px solid rgba(255, 255, 255, 0.3);
 	}
+
 
 	.user-info {
 		text-align: center;
@@ -217,6 +229,15 @@
 		justify-content: center;
 		gap: 0.75rem;
 		flex-wrap: wrap;
+		width: 100%;
+	}
+
+	.profile-action-buttons {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		width: 100%;
+		align-items: stretch;
 	}
 
 	.edit-btn {
@@ -229,11 +250,18 @@
 		transition: all 0.2s ease;
 		font-family: 'eurostile', sans-serif;
 		font-weight: bold;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		text-decoration: none;
+		text-align: center;
+		min-width: 180px;
 	}
 
 	.edit-btn:hover {
 		transform: translateY(-1px);
 	}
+
 
 	.logout-btn {
 		background: rgba(255, 255, 255, 0.1);

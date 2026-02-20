@@ -318,10 +318,13 @@ export class ForumService {
 			]);
 
 			// Map author field to authorId for UI compatibility
-			const comments = response.documents.map(doc => ({
-				...doc,
-				authorId: doc.author
-			})) as ForumComment[];
+			const comments = response.documents.map(
+				(doc) =>
+					({
+						...doc,
+						authorId: doc.author
+					}) as ForumComment
+			);
 			
 			const total = response.total;
 			const hasMore = page * limit < total;

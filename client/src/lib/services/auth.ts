@@ -1,5 +1,5 @@
 import { account, client, validateAppwriteConfig } from '$lib/config/appwrite';
-import type { AuthUser, Creator } from '$lib/types';
+import type { AuthUser, Creator, UserRole } from '$lib/types';
 import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
 
@@ -35,15 +35,7 @@ export class AuthService {
 			const session = await account.get();
 
 			if (session) {
-				const authUser: AuthUser = {
-					$id: session.$id,
-					email: session.email,
-					username: session.name,
-					emailVerification: session.emailVerification,
-					phoneVerification: session.phoneVerification,
-					prefs: session.prefs
-				};
-
+				const authUser = this.buildAuthUser(session);
 				this.user.set(authUser);
 				this.isAuthenticated.set(true);
 			} else {
@@ -78,13 +70,7 @@ export class AuthService {
 			// Automatically log in after registration
 			await this.login(email, password);
 
-			return {
-				$id: accountResponse.$id,
-				email: accountResponse.email,
-				username: accountResponse.name,
-				emailVerification: accountResponse.emailVerification,
-				phoneVerification: accountResponse.phoneVerification
-			};
+			return this.buildAuthUser(accountResponse);
 		} catch (error) {
 			console.error('Registration error details:', error);
 			throw this.handleRegistrationError(error);
@@ -99,15 +85,7 @@ export class AuthService {
 			await account.createEmailPasswordSession(email, password);
 
 			const session = await account.get();
-			const authUser: AuthUser = {
-				$id: session.$id,
-				email: session.email,
-				username: session.name,
-				emailVerification: session.emailVerification,
-				phoneVerification: session.phoneVerification,
-				prefs: session.prefs
-			};
-
+			const authUser = this.buildAuthUser(session);
 			this.user.set(authUser);
 			this.isAuthenticated.set(true);
 
@@ -206,15 +184,7 @@ export class AuthService {
 				updatedUser = await account.get();
 			}
 
-			const authUser: AuthUser = {
-				$id: updatedUser.$id,
-				email: updatedUser.email,
-				username: updatedUser.name,
-				emailVerification: updatedUser.emailVerification,
-				phoneVerification: updatedUser.phoneVerification,
-				prefs: updatedUser.prefs
-			};
-
+			const authUser = this.buildAuthUser(updatedUser);
 			this.user.set(authUser);
 			return authUser;
 		} catch (error) {
@@ -240,18 +210,13 @@ export class AuthService {
 	 */
 	async updatePreferences(prefs: Record<string, any>): Promise<AuthUser> {
 		try {
-			await account.updatePrefs(prefs);
+			const currentAccount = await account.get();
+			const mergedPrefs = { ...(currentAccount.prefs || {}), ...prefs };
+
+			await account.updatePrefs(mergedPrefs);
 			const updatedUser = await account.get();
 
-			const authUser: AuthUser = {
-				$id: updatedUser.$id,
-				email: updatedUser.email,
-				username: updatedUser.name,
-				emailVerification: updatedUser.emailVerification,
-				phoneVerification: updatedUser.phoneVerification,
-				prefs: updatedUser.prefs
-			};
-
+			const authUser = this.buildAuthUser(updatedUser);
 			this.user.set(authUser);
 			return authUser;
 		} catch (error) {
@@ -268,14 +233,7 @@ export class AuthService {
 			const session = await account.get();
 
 			if (session) {
-				return {
-					$id: session.$id,
-					email: session.email,
-					username: session.name,
-					emailVerification: session.emailVerification,
-					phoneVerification: session.phoneVerification,
-					prefs: session.prefs
-				};
+				return this.buildAuthUser(session);
 			}
 
 			return null;
@@ -296,6 +254,115 @@ export class AuthService {
 			console.error('Account deletion error:', error);
 			throw this.handleAuthError(error);
 		}
+	}
+
+	/**
+	 * Upload or replace the current user's profile picture
+	 */
+	async updateProfilePicture(file: File): Promise<AuthUser> {
+		if (!browser) {
+			throw new Error('Profile picture updates are only available in the browser.');
+		}
+
+		try {
+			const uploadedImage = await this.uploadProfileImage(file);
+			const currentAccount = await account.get();
+
+			const updatedPrefs = { ...(currentAccount.prefs || {}) };
+			updatedPrefs.picture = uploadedImage.url;
+			updatedPrefs.avatarFileId = uploadedImage.id;
+
+			await account.updatePrefs(updatedPrefs);
+
+			const updatedAccount = await account.get();
+			const authUser = this.buildAuthUser(updatedAccount);
+			this.user.set(authUser);
+			this.isAuthenticated.set(true);
+			return authUser;
+		} catch (error) {
+			console.error('Profile picture update error:', error);
+			if (error instanceof Error) {
+				throw error;
+			}
+			throw new Error('Failed to update profile picture');
+		}
+	}
+
+	/**
+	 * Remove the current user's profile picture
+	 */
+	async removeProfilePicture(): Promise<AuthUser> {
+		if (!browser) {
+			throw new Error('Profile picture updates are only available in the browser.');
+		}
+
+		try {
+			const currentAccount = await account.get();
+
+			const updatedPrefs = { ...(currentAccount.prefs || {}) };
+			delete updatedPrefs.picture;
+			delete updatedPrefs.avatarFileId;
+
+			await account.updatePrefs(updatedPrefs);
+
+			const updatedAccount = await account.get();
+			const authUser = this.buildAuthUser(updatedAccount);
+			this.user.set(authUser);
+			this.isAuthenticated.set(true);
+			return authUser;
+		} catch (error) {
+			console.error('Profile picture removal error:', error);
+			if (error instanceof Error) {
+				throw error;
+			}
+			throw new Error('Failed to remove profile picture');
+		}
+	}
+
+	private async uploadProfileImage(file: File): Promise<{
+		id: string;
+		url: string;
+		size?: number;
+		type?: string;
+		filename?: string;
+		width?: number | null;
+		height?: number | null;
+	}> {
+		const formData = new FormData();
+		formData.append('file', file);
+
+		const response = await fetch('/api/upload-image', {
+			method: 'POST',
+			body: formData
+		});
+
+		let result: {
+			success: boolean;
+			data?: {
+				id: string;
+				url: string;
+				size?: number;
+				type?: string;
+				filename?: string;
+				width?: number | null;
+				height?: number | null;
+			};
+			error?: string;
+		};
+
+		try {
+			result = await response.json();
+		} catch (err) {
+			throw new Error(
+				err instanceof Error ? `Failed to parse upload response: ${err.message}` : 'Failed to upload image'
+			);
+		}
+
+		if (!response.ok || !result?.success || !result.data) {
+			throw new Error(result?.error || 'Failed to upload image');
+		}
+
+		return result.data;
 	}
 
 	/**
@@ -373,17 +440,15 @@ export class AuthService {
 	 * Get user for events creation (compatible with existing format)
 	 */
 	getCurrentUserForEvents(): Creator | null {
-		let currentUser: AuthUser | null = null;
-		this.user.subscribe((u) => (currentUser = u))();
-
-		if (!currentUser) return null;
+		const user = this.getCurrentUserSync();
+		if (!user || !user.$id) return null;
 
 		return {
-			userId: currentUser.$id!,
-			email: currentUser.email,
-			username: currentUser.username,
-			nickname: currentUser.username, // Use username as nickname fallback
-			picture: '' // Appwrite doesn't have profile pictures by default
+			userId: user.$id,
+			email: user.email,
+			username: user.username,
+			nickname: user.username, // Use username as nickname fallback
+			picture: user.picture
 		};
 	}
 
@@ -403,6 +468,36 @@ export class AuthService {
 		let currentUser: AuthUser | null = null;
 		this.user.subscribe((u) => (currentUser = u))();
 		return currentUser;
+	}
+
+	private buildAuthUser(accountData: any): AuthUser {
+		if (!accountData) {
+			throw new Error('Invalid account data');
+		}
+
+		const prefs = accountData.prefs || {};
+		const roles = Array.isArray(prefs.roles) ? (prefs.roles as UserRole[]) : undefined;
+		const picture =
+			typeof prefs.picture === 'string' && prefs.picture.trim().length > 0
+				? (prefs.picture as string)
+				: undefined;
+		const avatarFileId =
+			typeof prefs.avatarFileId === 'string' && prefs.avatarFileId.trim().length > 0
+				? (prefs.avatarFileId as string)
+				: undefined;
+
+		return {
+			$id: accountData.$id,
+			userId: accountData.$id,
+			email: accountData.email,
+			username: accountData.name,
+			emailVerification: accountData.emailVerification,
+			phoneVerification: accountData.phoneVerification,
+			prefs: accountData.prefs,
+			roles,
+			picture,
+			avatarFileId
+		};
 	}
 }
 

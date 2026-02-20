@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { wikiService } from '$lib/services/wiki/wikiService';
 	import { authStore } from '$lib/auth/store';
+	import AvatarCircle from '$lib/components/AvatarCircle.svelte';
 	import type {
 		WikiPage,
 		WikiCategory,
@@ -166,12 +167,27 @@
 				<div class="sidebar-section">
 					<div class="sidebar-title">Recently Updated</div>
 					<div class="recent-pages">
-						{#each stats.recentPages.slice(0, 5) as page (page.$id)}
-							<a href="/wiki/{page.slug}" class="recent-page-item">
-								<span class="recent-page-title">{page.title}</span>
-								<span class="recent-page-meta">{page.authorName}</span>
-							</a>
-						{/each}
+				{#each stats.recentPages.slice(0, 5) as page (page.$id)}
+					<div class="recent-page-item">
+						<AvatarCircle
+							userId={page.authorId}
+							name={page.authorName}
+							size={36}
+							class="recent-page-avatar"
+						/>
+						<div class="recent-page-text">
+							<a class="recent-page-title" href="/wiki/{page.slug}">{page.title}</a>
+							<span class="recent-page-meta">
+								<a class="profile-link" href="/profile/{page.authorId}">
+									{page.authorName}
+								</a>
+								{#if page.$updatedAt}
+									• {new Date(page.$updatedAt).toLocaleDateString()}
+								{/if}
+							</span>
+						</div>
+					</div>
+				{/each}
 					</div>
 				</div>
 			{/if}
@@ -247,12 +263,31 @@
 									<a href="/wiki/{p.slug}">{p.title}</a>
 								</div>
 								<div class="page-meta">
-									By {p.authorName}
-									{#if p.updatedAt}
-										• Updated {new Date(p.updatedAt).toLocaleDateString()}
-									{/if}
+									<div class="page-author">
+										<AvatarCircle
+											userId={p.authorId}
+											name={p.authorName}
+											size={48}
+											class="page-avatar"
+										/>
+										<div class="page-author-text">
+											<a class="page-author-name profile-link" href="/profile/{p.authorId}">{p.authorName}</a>
+											{#if p.$updatedAt || p.updatedAt}
+												<span class="page-updated">
+													Updated
+													{new Date((p.$updatedAt || p.updatedAt) as string).toLocaleDateString()}
+												</span>
+											{:else if p.$createdAt}
+												<span class="page-updated">
+													Created {new Date(p.$createdAt).toLocaleDateString()}
+												</span>
+											{/if}
+										</div>
+									</div>
 									{#if p.categoryId}
-										• Category: {categories.find((c) => c.$id === p.categoryId)?.name || '—'}
+										<div class="page-category">
+											Category: {categories.find((c) => c.$id === p.categoryId)?.name || '—'}
+										</div>
 									{/if}
 								</div>
 							</div>
@@ -372,15 +407,25 @@
 	}
 
 	.recent-page-item {
-		display: block;
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
 		padding: 0.4rem 0.5rem;
 		border-radius: 0.375rem;
-		text-decoration: none;
-		color: inherit;
 	}
 
 	.recent-page-item:hover {
 		background-color: #f3f4f6;
+	}
+
+	.recent-page-title {
+		font-weight: 500;
+		color: inherit;
+		text-decoration: none;
+	}
+
+	.recent-page-title:hover {
+		text-decoration: underline;
 	}
 
 	.recent-page-title {
@@ -390,6 +435,18 @@
 	.recent-page-meta {
 		font-size: 0.85rem;
 		color: #6b7280;
+	}
+
+	.profile-link {
+		color: var(--color-capa-red);
+		text-decoration: none;
+		font-weight: 600;
+	}
+
+	.profile-link:hover,
+	.profile-link:focus-visible {
+		color: var(--color-capa-orange);
+		text-decoration: underline;
 	}
 
 	.main-content {
@@ -471,6 +528,35 @@
 		font-size: 0.85rem;
 		color: #6b7280;
 		margin-bottom: 0.5rem;
+	}
+
+	.page-author {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.page-avatar {
+		--avatar-border-color: #e5e7eb;
+		--avatar-bg-color: #f3f4f6;
+		--avatar-text-color: #374151;
+	}
+
+	.page-author-text {
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+	}
+
+	.page-author-name {
+		font-weight: 600;
+		color: #111827;
+	}
+
+	.page-updated,
+	.page-category {
+		color: #6b7280;
+		font-size: 0.8rem;
 	}
 
 	.page-excerpt {
@@ -605,12 +691,38 @@
 	}
 
 	.recent-page-item {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.4rem 0.5rem;
+		border-radius: 0.375rem;
 		color: rgba(255, 255, 255, 0.85);
 	}
 
 	.recent-page-item:hover {
 		background: rgba(255, 255, 255, 0.06);
 		color: var(--color-capa-white);
+	}
+
+	.recent-page-title {
+		color: var(--color-capa-white);
+		text-decoration: none;
+	}
+
+	.recent-page-title:hover {
+		color: var(--color-capa-orange);
+		text-decoration: underline;
+	}
+
+	.recent-page-avatar {
+		--avatar-border-color: rgba(255, 255, 255, 0.2);
+		--avatar-bg-color: rgba(255, 255, 255, 0.05);
+	}
+
+	.recent-page-text {
+		display: flex;
+		flex-direction: column;
+		gap: 0.2rem;
 	}
 
 	.recent-page-meta {
@@ -715,6 +827,24 @@
 
 	.page-meta {
 		color: rgba(255, 255, 255, 0.7);
+	}
+
+	.page-avatar {
+		border-color: rgba(255, 255, 255, 0.2);
+		background: rgba(255, 255, 255, 0.08);
+	}
+
+	.page-avatar span {
+		color: var(--color-capa-white);
+	}
+
+	.page-author-name {
+		color: var(--color-capa-white);
+	}
+
+	.page-updated,
+	.page-category {
+		color: rgba(255, 255, 255, 0.75);
 	}
 
 	.page-excerpt {

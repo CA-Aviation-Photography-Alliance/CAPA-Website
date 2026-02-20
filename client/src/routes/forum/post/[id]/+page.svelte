@@ -6,6 +6,7 @@
 	import { authStore } from '$lib/auth/store';
 	import type { ForumPost, ForumComment } from '$lib/types';
 	import ModerationControls from '$lib/components/forum/ModerationControls.svelte';
+	import AvatarCircle from '$lib/components/AvatarCircle.svelte';
 
 	let post: ForumPost | null = null;
 	let comments: ForumComment[] = [];
@@ -260,8 +261,14 @@
 
 				<div class="post-meta">
 					<div class="author-info">
+						<AvatarCircle
+							userId={post.authorId}
+							name={post.authorName}
+							size={56}
+							class="post-author-avatar"
+						/>
 						<div class="author-details">
-							<span class="author-name">{post.authorName}</span>
+							<a href={`/profile/${post.authorId}`} class="author-name">{post.authorName}</a>
 							<span class="post-date">{formatTimeAgo(post.$createdAt || '')}</span>
 						</div>
 					</div>
@@ -386,11 +393,21 @@
 								<div class="comment-content">
 									<div class="comment-header">
 										<div class="comment-meta">
-											<span class="comment-author">{comment.authorName}</span>
-											<span class="comment-date">{formatTimeAgo(comment.$createdAt || '')}</span>
-											{#if comment.isEdited}
-												<span class="edited-indicator">(edited)</span>
-											{/if}
+											<AvatarCircle
+												userId={comment.authorId}
+												name={comment.authorName}
+												size={40}
+												class="comment-avatar"
+											/>
+											<div class="comment-author-meta">
+												<a href={`/profile/${comment.authorId}`} class="comment-author"
+													>{comment.authorName}</a
+												>
+												<span class="comment-date">{formatTimeAgo(comment.$createdAt || '')}</span>
+												{#if comment.isEdited}
+													<span class="edited-indicator">(edited)</span>
+												{/if}
+											</div>
 										</div>
 
 										<!-- Comment Moderation Controls -->
@@ -656,7 +673,7 @@
 	.author-info {
 		display: flex;
 		align-items: center;
-		gap: 1rem;
+		gap: 0.75rem;
 	}
 
 	.author-details {
@@ -669,11 +686,21 @@
 		font-weight: bold;
 		color: var(--color-capa-orange);
 		font-size: 1.1rem;
+		text-decoration: none;
+	}
+
+	.author-name:hover {
+		text-decoration: underline;
 	}
 
 	.post-date {
 		color: rgba(255, 255, 255, 0.6);
 		font-size: 0.9rem;
+	}
+
+	.post-author-avatar {
+		--avatar-border-color: rgba(255, 255, 255, 0.2);
+		--avatar-bg-color: rgba(255, 255, 255, 0.05);
 	}
 
 	.post-stats {
@@ -1054,13 +1081,29 @@
 	.comment-meta {
 		display: flex;
 		align-items: center;
-		gap: 1rem;
+		gap: 0.75rem;
 		flex-wrap: wrap;
+	}
+
+	.comment-avatar {
+		--avatar-border-color: rgba(255, 255, 255, 0.2);
+		--avatar-bg-color: rgba(255, 255, 255, 0.05);
+	}
+
+	.comment-author-meta {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
 	}
 
 	.comment-author {
 		font-weight: bold;
 		color: var(--color-capa-orange);
+		text-decoration: none;
+	}
+
+	.comment-author:hover {
+		text-decoration: underline;
 	}
 
 	.comment-date {

@@ -1,6 +1,14 @@
 <script lang="ts">
-	import { authStore, updateProfile } from '$lib/auth/store';
+	import {
+		authStore,
+		updateProfile,
+		updateProfilePicture,
+		removeProfilePicture,
+		updateProfileExtras
+	} from '$lib/auth/store';
 	import { onMount } from 'svelte';
+	import { browser } from '$app/environment';
+	import { userProfileService } from '$lib/services/userProfileService';
 
 	let {
 		onClose,
@@ -15,20 +23,63 @@
 	let isLoading = $state(false);
 	let error = $state('');
 	let hasChanges = $state(false);
+	let currentPicture = $state<string | null>(null);
+	let avatarPreview = $state<string | null>(null);
+	let avatarError = $state('');
+	let isAvatarLoading = $state(false);
+	let avatarInput: HTMLInputElement | null = null;
+	const displayedAvatar = $derived(avatarPreview || currentPicture);
+	const BIO_MAX = 500;
+
+	let bio = $state('');
+	let initialBio = '';
+	let profileDetailsError = $state('');
+
+	function hasProfileDetailsChanged(): boolean {
+		return bio.trim() !== (initialBio || '').trim();
+	}
+
+	function refreshHasChanges() {
+		if ($authStore.user) {
+			hasChanges =
+				username !== ($authStore.user.username || '') ||
+				email !== ($authStore.user.email || '') ||
+				hasProfileDetailsChanged();
+		}
+	}
+
+	async function loadProfileDetails() {
+		if (!$authStore.user) return;
+		try {
+			const profile = await userProfileService.getProfile(
+				$authStore.user.$id || $authStore.user.userId
+			);
+			bio = profile?.bio || '';
+			initialBio = bio;
+			refreshHasChanges();
+		} catch (error) {
+			console.warn('Failed to load profile details', error);
+		}
+	}
 
 	onMount(() => {
 		if ($authStore.user) {
 			username = $authStore.user.username || '';
 			email = $authStore.user.email || '';
+			currentPicture = $authStore.user.picture || null;
 		}
+		loadProfileDetails();
 	});
 
 	// Track changes
 	$effect(() => {
 		if ($authStore.user) {
-			hasChanges =
-				username !== ($authStore.user.username || '') || email !== ($authStore.user.email || '');
+			refreshHasChanges();
 		}
+	});
+
+	$effect(() => {
+		currentPicture = $authStore.user?.picture || null;
 	});
 
 	function validateForm(): boolean {
@@ -58,29 +109,53 @@
 	}
 
 	async function saveProfile() {
-		if (!validateForm()) return;
 		if (!$authStore.user) return;
+
+		const usernameChanged = username !== ($authStore.user.username || '');
+		const emailChanged = email !== ($authStore.user.email || '');
+		const profileDetailsChanged = hasProfileDetailsChanged();
+
+		if (!usernameChanged && !emailChanged && !profileDetailsChanged) {
+			return;
+		}
+
+		if ((usernameChanged || emailChanged) && !validateForm()) {
+			return;
+		}
 
 		isLoading = true;
 		error = '';
+		profileDetailsError = '';
 
 		try {
-			// Only update fields that have changed
-			const usernameChanged = username !== ($authStore.user.username || '');
-			const emailChanged = email !== ($authStore.user.email || '');
+			if (usernameChanged || emailChanged) {
+				await updateProfile(
+					usernameChanged ? username.trim() : undefined,
+					emailChanged ? email.trim() : undefined
+				);
+			}
 
-			await updateProfile(
-				usernameChanged ? username.trim() : undefined,
-				emailChanged ? email.trim() : undefined
-			);
+			if (profileDetailsChanged) {
+				await updateProfileExtras({
+					bio
+				});
 
-			onSave({ username, email });
+				initialBio = bio.trim();
+			}
+
+			onSave({ username, email, bio });
 			onClose();
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to update profile';
+			const message = err instanceof Error ? err.message : 'Failed to update profile';
+			if (profileDetailsChanged && !usernameChanged && !emailChanged) {
+				profileDetailsError = message;
+			} else {
+				error = message;
+			}
 			console.error('Profile update error:', err);
 		} finally {
 			isLoading = false;
+			refreshHasChanges();
 		}
 	}
 
@@ -102,10 +177,73 @@
 			email = $authStore.user.email || '';
 		}
 		error = '';
+		bio = initialBio;
+		profileDetailsError = '';
+		refreshHasChanges();
+	}
+
+	function getUserInitials(): string {
+		const source = $authStore.user?.username || $authStore.user?.email || '';
+		if (!source) return '?';
+		return source.slice(0, 2).toUpperCase();
+	}
+
+	function triggerAvatarSelect() {
+		if (!isAvatarLoading) {
+			avatarInput?.click();
+		}
+	}
+
+	async function handleAvatarChange(event: Event) {
+		const target = event.currentTarget as HTMLInputElement;
+		const file = target.files?.[0];
+		if (!file) return;
+
+		avatarError = '';
+
+		if (!file.type.startsWith('image/')) {
+			avatarError = 'Please choose an image file.';
+			target.value = '';
+			return;
+		}
+
+		isAvatarLoading = true;
+
+		const previewUrl = browser ? URL.createObjectURL(file) : null;
+		avatarPreview = previewUrl;
+
+		try {
+			const updatedUser = await updateProfilePicture(file);
+			currentPicture = updatedUser.picture || null;
+		} catch (err) {
+			avatarError = err instanceof Error ? err.message : 'Failed to update profile picture';
+		} finally {
+			if (browser && previewUrl) {
+				URL.revokeObjectURL(previewUrl);
+			}
+			avatarPreview = null;
+			isAvatarLoading = false;
+			target.value = '';
+		}
+	}
+
+	async function handleAvatarRemove() {
+		if (!currentPicture || isAvatarLoading) return;
+		avatarError = '';
+		isAvatarLoading = true;
+
+		try {
+			const updatedUser = await removeProfilePicture();
+			currentPicture = updatedUser.picture || null;
+		} catch (err) {
+			avatarError = err instanceof Error ? err.message : 'Failed to remove profile picture';
+		} finally {
+			isAvatarLoading = false;
+		}
 	}
 </script>
 
-<svelte:window on:keydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} />
 
 <div
 	class="modal-backdrop"
@@ -138,6 +276,53 @@
 			}}
 			class="profile-form"
 		>
+			<div class="avatar-section">
+				<div class="avatar-preview" aria-busy={isAvatarLoading}>
+					{#if displayedAvatar}
+						<img src={displayedAvatar} alt="Profile picture preview" />
+					{:else}
+						<div class="avatar-placeholder">
+							{getUserInitials()}
+						</div>
+					{/if}
+					{#if isAvatarLoading}
+						<div class="avatar-overlay">
+							<span class="spinner"></span>
+						</div>
+					{/if}
+				</div>
+				<div class="avatar-actions">
+					<button
+						type="button"
+						class="btn-secondary"
+						onclick={triggerAvatarSelect}
+						disabled={isAvatarLoading}
+					>
+						{currentPicture ? 'Change Photo' : 'Add Photo'}
+					</button>
+					<button
+						type="button"
+						class="btn-tertiary"
+						onclick={handleAvatarRemove}
+						disabled={!currentPicture || isAvatarLoading}
+					>
+						Remove
+					</button>
+				</div>
+				{#if avatarError}
+					<p class="avatar-error">
+						{avatarError}
+					</p>
+				{/if}
+				<input
+					class="sr-only"
+					type="file"
+					accept="image/png,image/jpeg,image/gif,image/webp"
+					bind:this={avatarInput}
+					onchange={handleAvatarChange}
+				/>
+			</div>
+
 			{#if error}
 				<div class="error-message">
 					{error}
@@ -173,6 +358,31 @@
 					Your email address for notifications and account recovery.
 				</small>
 			</div>
+
+			<div class="form-group">
+				<label for="bio">Bio</label>
+				<textarea
+					id="bio"
+					rows="4"
+					maxlength={BIO_MAX}
+					bind:value={bio}
+					placeholder="Tell the community a bit about yourself"
+					oninput={() => refreshHasChanges()}
+				></textarea>
+				<div class="helper-row">
+					<small class="help-text">
+						add masked links with
+						<span class="code-inline">[label](https://example.com)</span>
+					</small>
+					<small class="char-count">{bio.length}/{BIO_MAX}</small>
+				</div>
+			</div>
+
+			{#if profileDetailsError}
+				<div class="error-message">
+					{profileDetailsError}
+				</div>
+			{/if}
 
 			<div class="form-actions">
 				<button
@@ -262,6 +472,101 @@
 		padding: 1.5rem;
 	}
 
+	.avatar-section {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.75rem;
+		margin-bottom: 2rem;
+	}
+
+	.avatar-preview {
+		position: relative;
+		width: 120px;
+		height: 120px;
+		border-radius: 50%;
+		overflow: hidden;
+		border: 3px solid rgba(255, 255, 255, 0.2);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: rgba(255, 255, 255, 0.05);
+	}
+
+	.avatar-preview img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.avatar-placeholder {
+		width: 100%;
+		height: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 2rem;
+		font-weight: bold;
+		background: linear-gradient(135deg, var(--color-capa-red), var(--color-capa-orange));
+		color: var(--color-capa-white);
+	}
+
+	.avatar-overlay {
+		position: absolute;
+		inset: 0;
+		background: rgba(0, 0, 0, 0.6);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.avatar-actions {
+		display: flex;
+		gap: 0.5rem;
+		flex-wrap: wrap;
+		justify-content: center;
+	}
+
+	.btn-tertiary {
+		background: transparent;
+		border: 1px solid rgba(255, 255, 255, 0.2);
+		color: rgba(255, 255, 255, 0.8);
+		padding: 0.75rem 1.5rem;
+		border-radius: 6px;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		font-size: 0.875rem;
+	}
+
+	.btn-tertiary:hover:not(:disabled) {
+		color: var(--color-capa-white);
+		border-color: rgba(255, 255, 255, 0.4);
+	}
+
+	.btn-tertiary:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.avatar-error {
+		color: #ff6b6b;
+		font-size: 0.85rem;
+		margin: 0;
+		text-align: center;
+	}
+
+	.sr-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border: 0;
+	}
+
 	.error-message {
 		background-color: rgba(220, 53, 69, 0.2);
 		color: #ff6b6b;
@@ -309,12 +614,54 @@
 		cursor: not-allowed;
 	}
 
+	.form-group textarea {
+		width: 100%;
+		padding: 0.75rem;
+		border: 2px solid rgba(255, 255, 255, 0.2);
+		background: rgba(255, 255, 255, 0.05);
+		color: var(--color-capa-white);
+		border-radius: 6px;
+		font-size: 1rem;
+		font-family: inherit;
+		resize: vertical;
+		min-height: 120px;
+		box-sizing: border-box;
+	}
+
+	.form-group textarea:focus {
+		outline: none;
+		border-color: var(--color-capa-orange);
+		box-shadow: 0 0 0 3px rgba(223, 70, 20, 0.2);
+	}
+
 	.help-text {
 		display: block;
 		margin-top: 0.25rem;
 		font-size: 0.75rem;
 		color: #6b7280;
 		line-height: 1.4;
+	}
+
+	.code-inline {
+		font-family: 'JetBrains Mono', 'Fira Code', monospace;
+		font-size: 0.75rem;
+		background: rgba(255, 255, 255, 0.08);
+		color: var(--color-capa-white);
+		padding: 0.1rem 0.4rem;
+		border-radius: 4px;
+	}
+
+	.helper-row {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 0.5rem;
+		margin-top: 0.25rem;
+	}
+
+	.char-count {
+		font-size: 0.75rem;
+		color: rgba(255, 255, 255, 0.6);
 	}
 
 	.form-actions {

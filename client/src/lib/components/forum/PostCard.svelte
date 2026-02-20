@@ -3,6 +3,7 @@
 	import { authStore } from '$lib/auth/store';
 	import { forumService } from '$lib/services/forum/forumService';
 	import { goto } from '$app/navigation';
+	import AvatarCircle from '$lib/components/AvatarCircle.svelte';
 
 	export let post: ForumPost;
 	export let showCategory = false;
@@ -106,8 +107,18 @@
 
 		<div class="post-meta">
 			<div class="author-info">
-				<span class="author">by {post.authorName}</span>
-				<span class="created-date">{formatTimeAgo(post.$createdAt || '')}</span>
+				<AvatarCircle
+					userId={post.authorId}
+					name={post.authorName}
+					size={compact ? 32 : 40}
+					class="post-author-avatar"
+				/>
+				<div class="author-meta">
+					<span class="author">
+						by <a href={`/profile/${post.authorId}`} class="profile-link">{post.authorName}</a>
+					</span>
+					<span class="created-date">{formatTimeAgo(post.$createdAt || '')}</span>
+				</div>
 			</div>
 
 			<div class="post-actions">
@@ -319,7 +330,7 @@
 
 	.author-info {
 		display: flex;
-		gap: 1rem;
+		gap: 0.75rem;
 		align-items: center;
 	}
 
@@ -329,9 +340,31 @@
 		align-items: flex-start;
 	}
 
+	.post-author-avatar {
+		--avatar-border-color: rgba(255, 255, 255, 0.2);
+		--avatar-bg-color: rgba(255, 255, 255, 0.08);
+	}
+
+	.author-meta {
+		display: flex;
+		flex-direction: column;
+		gap: 0.2rem;
+	}
+
 	.author {
 		color: var(--color-capa-orange);
 		font-weight: bold;
+	}
+
+	.author a {
+		color: var(--color-capa-red);
+		text-decoration: none;
+		font-weight: 600;
+	}
+
+	.author a:hover {
+		text-decoration: underline;
+		color: var(--color-capa-orange);
 	}
 
 	.delete-btn {

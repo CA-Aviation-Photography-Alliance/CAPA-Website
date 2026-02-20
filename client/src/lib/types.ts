@@ -145,10 +145,13 @@ export interface UpdateEventData extends Partial<CreateEventData> {
 // User/Auth interfaces
 export interface User {
 	$id?: string;
+	userId?: string;
 	email: string;
+	name?: string;
 	username: string;
 	nickname?: string;
 	picture?: string;
+	avatarFileId?: string;
 }
 
 export interface AuthUser extends User {
@@ -156,6 +159,20 @@ export interface AuthUser extends User {
 	phoneVerification?: boolean;
 	prefs?: Record<string, unknown>;
 	roles?: UserRole[];
+}
+
+export interface UserProfileLink {
+	label: string;
+	url: string;
+}
+
+export interface UserProfileData {
+	userId: string;
+	picture?: string | null;
+	username?: string | null;
+	displayName?: string | null;
+	bio?: string | null;
+	links?: UserProfileLink[];
 }
 
 // User roles and permissions

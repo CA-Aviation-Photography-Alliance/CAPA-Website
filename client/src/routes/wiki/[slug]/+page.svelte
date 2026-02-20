@@ -4,6 +4,7 @@
 	import { authStore } from '$lib/auth/store';
 	import { wikiService } from '$lib/services/wiki/wikiService';
 	import type { WikiPage, WikiCategory } from '$lib/types';
+	import AvatarCircle from '$lib/components/AvatarCircle.svelte';
 
 	let isLoading = true;
 	let error: string | null = null;
@@ -138,6 +139,7 @@
 
 		return html;
 	}
+
 </script>
 
 {#if isLoading}
@@ -171,11 +173,35 @@
 		</div>
 
 		<div class="meta">
-			<div>By {wikiPage.authorName}</div>
-			{#if wikiPage.$updatedAt}
-				<div>Updated {formatDate(wikiPage.$updatedAt)}</div>
-			{:else if wikiPage.$createdAt}
-				<div>Created {formatDate(wikiPage.$createdAt)}</div>
+			<div class="meta-author">
+				<AvatarCircle
+					userId={wikiPage.authorId}
+					name={wikiPage.authorName}
+					size={56}
+					class="meta-avatar"
+				/>
+				<div class="meta-author-text">
+					<a class="meta-author-name profile-link" href="/profile/{wikiPage.authorId}">{wikiPage.authorName}</a>
+					{#if wikiPage.$updatedAt}
+						<div class="meta-date">Updated {formatDate(wikiPage.$updatedAt)}</div>
+					{:else if wikiPage.$createdAt}
+						<div class="meta-date">Created {formatDate(wikiPage.$createdAt)}</div>
+					{/if}
+				</div>
+			</div>
+			{#if wikiPage.lastEditedByName && wikiPage.lastEditedBy !== wikiPage.authorId}
+				<div class="meta-editor">
+					<AvatarCircle
+						userId={wikiPage.lastEditedBy}
+						name={wikiPage.lastEditedByName}
+						size={36}
+						class="meta-avatar small"
+					/>
+					<span>
+						Last edited by
+						<a class="profile-link" href="/profile/{wikiPage.lastEditedBy}">{wikiPage.lastEditedByName}</a>
+					</span>
+				</div>
 			{/if}
 			{#if categoryName}
 				<div>Category: {categoryName}</div>
@@ -281,6 +307,50 @@
 		gap: 0.5rem 1rem;
 		color: rgba(255, 255, 255, 0.7);
 		font-size: 0.95rem;
+	}
+
+	.meta-author,
+	.meta-editor {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.meta-avatar {
+		--avatar-border-color: rgba(255, 255, 255, 0.2);
+		--avatar-bg-color: rgba(255, 255, 255, 0.08);
+	}
+
+	.meta-avatar.small {
+		--avatar-size: 36px;
+	}
+
+	.meta-author-text {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
+
+	.meta-author-name {
+		font-weight: bold;
+		color: var(--color-capa-white);
+	}
+
+	.profile-link {
+		color: var(--color-capa-red);
+		text-decoration: none;
+		font-weight: 600;
+	}
+
+	.profile-link:hover,
+	.profile-link:focus-visible {
+		color: var(--color-capa-orange);
+		text-decoration: underline;
+	}
+
+	.meta-date {
+		color: rgba(255, 255, 255, 0.7);
+		font-size: 0.9rem;
 	}
 
 	.tags {

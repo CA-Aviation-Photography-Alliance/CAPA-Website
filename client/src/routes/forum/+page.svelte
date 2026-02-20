@@ -122,25 +122,25 @@
 
 					<div class="recent-posts">
 						{#each stats.recentPosts as post, index}
-							<a
-								href="/forum/post/{post.$id}"
-								class="recent-post"
-							>
-								<div class="post-info">
+							<div class="recent-post">
+								<a class="recent-post-link" href="/forum/post/{post.$id}">
 									<h4>{post.title}</h4>
-									<div class="post-meta">
-										<span class="author">by {post.authorName}</span>
-										<span class="time">{formatTimeAgo(post.$createdAt || '')}</span>
-										<span class="stats">
-											{post.views} views • {post.commentCount} comments
-										</span>
-									</div>
+								</a>
+								<div class="post-meta">
+									<span class="author">
+										by
+										<a href={`/profile/${post.authorId}`} class="profile-link">{post.authorName}</a>
+									</span>
+									<span class="time">{formatTimeAgo(post.$createdAt || '')}</span>
+									<span class="stats">
+										{post.views} views • {post.commentCount} comments
+									</span>
 								</div>
 
 								{#if post.isPinned}
 									<span class="material-icons pinned-icon">push_pin</span>
 								{/if}
-							</a>
+							</div>
 						{/each}
 					</div>
 				</div>
@@ -413,15 +413,15 @@
 	.recent-post {
 		background: rgba(0, 0, 0, 0.7);
 		border-radius: 10px;
-		padding: 1.5rem;
-		text-decoration: none;
+		padding: 1.25rem 1.5rem;
 		color: var(--color-capa-white);
 		border: 1px solid rgba(188, 48, 17, 0.2);
 		backdrop-filter: blur(10px);
 		transition: all 0.3s ease;
 		display: flex;
-		justify-content: space-between;
-		align-items: center;
+		flex-direction: column;
+		gap: 0.5rem;
+		position: relative;
 	}
 
 	.recent-post:hover {
@@ -429,22 +429,36 @@
 		background: rgba(0, 0, 0, 0.8);
 	}
 
-	.post-info h4 {
-		margin: 0 0 0.5rem 0;
-		font-size: 1.1rem;
+	.recent-post-link {
+		text-decoration: none;
 		color: var(--color-capa-white);
-		line-height: 1;
-		display: inline-flex;
-		align-items: center;
-		transform: translateY(1px);
+	}
+
+	.recent-post-link h4 {
+		margin: 0;
+		font-size: 1.1rem;
+		line-height: 1.3;
 	}
 
 	.post-meta {
 		display: flex;
 		align-items: center;
-		gap: 1rem;
+		gap: 0.75rem;
 		color: rgba(255, 255, 255, 0.6);
 		font-size: 0.9rem;
+		flex-wrap: wrap;
+	}
+
+	.author .profile-link {
+		color: var(--color-capa-red);
+		text-decoration: none;
+		font-weight: 600;
+	}
+
+	.author .profile-link:hover,
+	.author .profile-link:focus-visible {
+		text-decoration: underline;
+		color: var(--color-capa-orange);
 	}
 
 	.pinned-icon {
@@ -453,6 +467,9 @@
 		line-height: 1;
 		display: inline-flex;
 		align-items: center;
+		position: absolute;
+		top: 0.75rem;
+		right: 0.75rem;
 	}
 
 	@media (max-width: 768px) {
