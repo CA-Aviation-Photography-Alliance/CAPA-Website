@@ -88,9 +88,7 @@
 		{/if}
 
 		<!-- Auth section -->
-		{#if $authStore.isAuthenticated}
-			<UserProfile showFullProfile={false} />
-		{:else if !$authStore.isLoading}
+		{#if $authStore.isAuthenticated}{:else if !$authStore.isLoading}
 			<NavLink label="Sign In" href="#" onclick={handleLoginClick} />
 		{/if}
 	</div>
